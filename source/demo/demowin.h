@@ -1,6 +1,7 @@
 ﻿#include "window/windowaaa.h"
 #include "InterfaceLLT_2.h"
 #include "qcustomplot.h"
+#include "CommDef.h"
 
 
 #ifndef __demowin_h__
@@ -138,14 +139,22 @@ public://Create UI
 		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
-		connect(pushButtonMoveRight, &QPushButton::clicked, this, &MyWidget::pushButtonMoveRight_clickded);
-		connect(pushButtonMoveLeft, &QPushButton::clicked, this, &MyWidget::pushButtonMoveLeft_clickded);
-		connect(pushButtonMoveForward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveForward_clickded);
-		connect(pushButtonMoveBackward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveBackward_clickded);
-		connect(pushButtonMoveUp, &QPushButton::clicked, this, &MyWidget::pushButtonMoveUp_clickded);
-		connect(pushButtonMoveDown, &QPushButton::clicked, this, &MyWidget::pushButtonMoveDown_clickded);
-		connect(pushButtonRotateClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateClockwise_clickded);
-		connect(pushButtonRotateAntiClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateAntiClockwise_clickded);
+		connect(pushButtonMoveRight, &QPushButton::pressed, this, &MyWidget::pushButtonMoveRight_pressed);
+		connect(pushButtonMoveLeft, &QPushButton::pressed, this, &MyWidget::pushButtonMoveLeft_pressed);
+		connect(pushButtonMoveForward, &QPushButton::pressed, this, &MyWidget::pushButtonMoveForward_pressed);
+		connect(pushButtonMoveBackward, &QPushButton::pressed, this, &MyWidget::pushButtonMoveBackward_pressed);
+		connect(pushButtonMoveUp, &QPushButton::pressed, this, &MyWidget::pushButtonMoveUp_pressed);
+		connect(pushButtonMoveDown, &QPushButton::pressed, this, &MyWidget::pushButtonMoveDown_pressed);
+		connect(pushButtonRotateClockwise, &QPushButton::pressed, this, &MyWidget::pushButtonRotateClockwise_pressed);
+		connect(pushButtonRotateAntiClockwise, &QPushButton::pressed, this, &MyWidget::pushButtonRotateAntiClockwise_pressed);
+		connect(pushButtonMoveRight, &QPushButton::released, this, &MyWidget::pushButtonMoveRight_released);
+		connect(pushButtonMoveLeft, &QPushButton::released, this, &MyWidget::pushButtonMoveLeft_released);
+		connect(pushButtonMoveForward, &QPushButton::released, this, &MyWidget::pushButtonMoveForward_released);
+		connect(pushButtonMoveBackward, &QPushButton::released, this, &MyWidget::pushButtonMoveBackward_released);
+		connect(pushButtonMoveUp, &QPushButton::released, this, &MyWidget::pushButtonMoveUp_released);
+		connect(pushButtonMoveDown, &QPushButton::released, this, &MyWidget::pushButtonMoveDown_released);
+		connect(pushButtonRotateClockwise, &QPushButton::released, this, &MyWidget::pushButtonRotateClockwise_released);
+		connect(pushButtonRotateAntiClockwise, &QPushButton::released, this, &MyWidget::pushButtonRotateAntiClockwise_released);
 
 		//addin7
 		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
@@ -165,7 +174,7 @@ public://Create UI
 		//addin8
 		gridLayoutGroupBoxImplement->addWidget(pushButtonReset, 0, 0, 1, 1); pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 		gridLayoutGroupBoxImplement->addWidget(PushButtonStartup, 1, 0, 1, 1); PushButtonStartup->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
-		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clickded);
+		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clicked);
 		connect(PushButtonStartup, &QPushButton::clicked, this, &MyWidget::PushButtonStartup_clickded);
 
 		//addin9
@@ -233,7 +242,7 @@ public://Init serialport
 		}
 		else
 		{
-			serialPortCtrl.setPort(QSerialPortInfo(comboBoxDataPort->currentText()));
+			serialPortCtrl.setPort(QSerialPortInfo(comboBoxCtrlPort->currentText()));
 			serialPortCtrl.setBaudRate(460800);
 			if (serialPortCtrl.open(QIODevice::ReadWrite))
 			{
@@ -426,7 +435,7 @@ public://Init ethernet
 	}
 	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
 
-public://Use serialport
+public://Read serialport
 	queue<uchar> queueXYZR;
 	float realtimeX = FLT_MIN;
 	float realtimeY = FLT_MIN;
@@ -476,16 +485,88 @@ public://Use serialport
 	void serialPortCtrl_bytesWritten() {/*use syn mode*/}
 	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
 	
-public://
-	void pushButtonMoveRight_clickded() {}
-	void pushButtonMoveLeft_clickded() {}
-	void pushButtonMoveForward_clickded() {}
-	void pushButtonMoveBackward_clickded() {}
-	void pushButtonMoveUp_clickded() {}
-	void pushButtonMoveDown_clickded() {}
-	void pushButtonRotateClockwise_clickded() {}
-	void pushButtonRotateAntiClockwise_clickded() {}
-	void pushButtonReset_clickded() {}
+public://Write serialport
+	typedef struct PortParams
+	{
+		uchar motorId; // 0x0 or 0x1 or 0x2 or 0x3
+		int moveDirection; //-1 or 1
+	}PortParams;
+	void writeSerialPortCtrl(CMDCODE cmdCode, PortParams pp)
+	{
+		//0.
+		uchar data[12];
+		data[0] = 0x53;
+		data[10] = cmdCode;
+		data[11] = 0x0;
+
+		//1.
+		if (cmdCode == CMD_SJ_GODIST)
+		{	
+			*((int*)(data + 3)) = pp.moveDirection * 200 * 1000000;
+			data[7] = pp.motorId;
+			*((int*)(data + 8)) = 5 * 1000000;
+		}
+		else if (cmdCode == CMD_SJ_GO_STOP)
+		{
+			data[2] = pp.motorId;
+		}
+		else if (cmdCode == CMD_DEVRST)
+		{
+		}
+
+		//3.
+		for (int i = 1; i < 11; ++i) data[11] += data[i];
+
+		//4.
+		for (int i = 0; i < 3; ++i)
+		{
+			serialPortCtrl.write((char*)data, 12);
+			if (serialPortCtrl.waitForBytesWritten(100)) break;
+		}
+	}
+	void pushButtonMoveRight_pressed() { PortParams pp; pp.motorId = 0x0; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveLeft_pressed() { PortParams pp; pp.motorId = 0x0; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveForward_pressed() { PortParams pp; pp.motorId = 0x1; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveBackward_pressed() { PortParams pp; pp.motorId = 0x1; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveUp_pressed() { PortParams pp; pp.motorId = 0x2; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveDown_pressed() { PortParams pp; pp.motorId = 0x2; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonRotateClockwise_pressed() { PortParams pp; pp.motorId = 0x3; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonRotateAntiClockwise_pressed() { PortParams pp; pp.motorId = 0x3; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+
+	void pushButtonMoveRight_released() 
+	{
+		//0.
+		PortParams pp;
+		pp.motorId = 0x0;
+		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+
+		//1.
+		QTime t1; t1.start();
+		while (t1.elapsed()< 200)  QApplication::processEvents();
+		pp.motorId = 0x1;
+		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+
+		//2.
+		QTime t2; t2.start();
+		while (t2.elapsed()< 200)  QApplication::processEvents();
+		pp.motorId = 0x2;
+		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+
+		//3.
+		QTime t3; t3.start();
+		while (t3.elapsed()< 200)  QApplication::processEvents();
+		pp.motorId = 0x3;
+		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+	}
+	void pushButtonMoveLeft_released() { pushButtonMoveRight_released(); }
+	void pushButtonMoveForward_released() { pushButtonMoveRight_released(); }
+	void pushButtonMoveBackward_released() { pushButtonMoveRight_released(); }
+	void pushButtonMoveUp_released() { pushButtonMoveRight_released(); }
+	void pushButtonMoveDown_released() { pushButtonMoveRight_released(); }
+	void pushButtonRotateClockwise_released() { pushButtonMoveRight_released(); }
+	void pushButtonRotateAntiClockwise_released() { pushButtonMoveRight_released(); }
+	
+	void pushButtonReset_clicked() { PortParams pp; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
 public://
 	long timeid = -1;
 	long scanid = -1;
