@@ -1,7 +1,7 @@
 ###Setting####################################################################
 cmake_minimum_required(VERSION 2.8)
 project(aro CXX)
-add_definitions(-DUNICODE -D_UNICODE -D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_compile_options(-std=c++11 -fpermissive)
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON) 
