@@ -1,5 +1,6 @@
 ﻿#include "window/windowaaa.h"
 #include "InterfaceLLT_2.h"
+#include "qcustomplot.h"
 
 
 #ifndef __demowin_h__
@@ -14,6 +15,7 @@ public:
 	uint m_uiResolution = 0;
 	int iRetValue = 0;//buffer
 public:
+	bool exitDevice() {}
 	bool initDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
 	{
 #if 1
@@ -47,6 +49,7 @@ public:
 		else cout << endl << "3.Create firewire device: OK";
 #endif
 
+#if 1
 		//4.Get available interfaces
 		uint vuiEthernetInterfaces[50];
 		if ((iRetValue = m_pLLT->GetDeviceInterfacesFast(vuiEthernetInterfaces, 50)) < GENERAL_FUNCTION_OK)
@@ -91,6 +94,7 @@ public:
 			delete m_pLLT;
 			return false;
 		}
+#endif
 
 #if 1
 		//8.Get available resolutions
@@ -101,7 +105,12 @@ public:
 			delete m_pLLT;
 			return false;
 		}
-		else cout << endl << "8.Get available resolutions: OK and " << iRetValue << " resolutions";
+		else
+		{
+			cout << endl << "8.Get available resolutions: OK and " << iRetValue << " resolutions";
+			for (int i = 0; i < iRetValue; ++i)
+				cout << ": " << vdwResolutions[i];
+		}
 
 		//9.Set resolution
 		if ((iRetValue = m_pLLT->SetResolution(m_uiResolution = vdwResolutions[0])) < GENERAL_FUNCTION_OK)
@@ -147,48 +156,71 @@ public:
 			return false;
 		}
 		else cout << endl << "13.Set idletime: OK";
+
+		//14.Transfer profiles
+		if ((iRetValue = m_pLLT->TransferProfiles(NORMAL_TRANSFER, true)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("14.Transfer profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return false;
+		}
+		else cout << endl << "14.Transfer profiles: OK";
 #endif
+
+		return true;
 	}
-	
-	bool GetPorfiles()
+
+	void GetProfiles()
 	{
 		vector<double> vdValueX(m_uiResolution);
 		vector<double> vdValueZ(m_uiResolution);
 		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
 
-		//1.Transfer profiles
-		if ((iRetValue = m_pLLT->TransferProfiles(NORMAL_TRANSFER, true)) < GENERAL_FUNCTION_OK)
-		{
-			QMessageBox::warning(this, "", QString("1.Transfer profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return false;
-		}
-		else cout << endl << "1.Transfer profiles: OK";
-
-		QThread::msleep(100);
-
-		//2.Get profiles
+		//1.Get profiles
 		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
 		{
-			QMessageBox::warning(this, "", QString("2.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return false;
+			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
 		}
-		else cout << endl << "2.Get profiles: OK";
+		else cout << endl << "1.Get profiles: OK";
 
-		//3.Convert profiles
+		//2.Convert profiles
 		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
 		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
 		{
-			QMessageBox::warning(this, "", QString("3.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return false;
+			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
 		}
-		else cout << endl << "3.Convert profiles: OK";
+		else cout << endl << "2.Convert profiles: OK";
+
+
+
+		QVector<double> X = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> Z = QVector<double>::fromStdVector(vdValueZ);
+		customPlotViewScan->addGraph();
+		customPlotViewScan->graph(0)->setData(X, Z);
+		//customPlot.replot();
+		//
+		//for (uint i = 0; i < vdValueX.size(); ++i)
+		//{
+		//	cout << endl << i << ": x = " << vdValueX[i] << "   z = " << vdValueZ[i];
+		//}
+
+		//Mat_<uchar> ima(1280, 1920, (uchar)255);
+		//for (uint j = 0; j < vdValueX.size(); ++j)
+		//{
+		//	ima((int)std::abs(vdValueZ[j] * 10), j) = (uchar)0;
+		//}
+		//namedWindow("aa", 0);
+		//imshow("aa", ima);
+		//waitKey(0);
 	}
 
 
-
-
 public:
-	void pushButtonMoveRight_clickded() {}
+	void pushButtonMoveRight_clickded()
+	{
+		GetProfiles();
+	}
 	void pushButtonMoveLeft_clickded() {}
 	void pushButtonMoveForward_clickded() {}
 	void pushButtonMoveBackward_clickded() {}
@@ -207,7 +239,8 @@ public:
 
 	//2
 	QGridLayout* gridLayoutWidgetScan = new QGridLayout(widgetScan);
-	QGraphicsView* graphicsViewScan = new QGraphicsView(widgetScan);
+	//QGraphicsView* graphicsViewScan = new QGraphicsView(widgetScan);
+	QCustomPlot* customPlotViewScan = new QCustomPlot(widgetScan);
 	QGroupBox* groupBoxCurrentPose = new QGroupBox("Current Pose", widgetScan);
 	QGroupBox* groupBoxPoseSetting = new QGroupBox("Pose Setting", widgetScan);
 	QGroupBox* groupBoxScanSetting = new QGroupBox("Scan Setting", widgetScan);
@@ -262,6 +295,7 @@ public:
 	MyWidget(QWidget *parent = 0) : QWidget(parent) { createMainUI(); }
 	void createMainUI()
 	{
+		if (initDevice() == false) QApplication::exit();
 		//0.
 		this->setWindowTitle("Laser Scan");
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
@@ -274,7 +308,8 @@ public:
 		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse");
 
 		//2
-		gridLayoutWidgetScan->addWidget(graphicsViewScan, 0, 0, 1, 4);
+		//gridLayoutWidgetScan->addWidget(graphicsViewScan, 0, 0, 1, 4);
+		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4);
 		gridLayoutWidgetScan->addWidget(groupBoxCurrentPose, 1, 0, 1, 1);
 		gridLayoutWidgetScan->addWidget(groupBoxPoseSetting, 1, 1, 1, 1);
 		gridLayoutWidgetScan->addWidget(groupBoxScanSetting, 1, 2, 1, 1);
@@ -283,7 +318,17 @@ public:
 		gridLayoutWidgetScan->setColumnStretch(1, 2);
 		gridLayoutWidgetScan->setColumnStretch(2, 2);
 		gridLayoutWidgetScan->setColumnStretch(3, 1);
-
+		customPlotViewScan->addGraph();
+		QVector<double> x(101), y(101);//分别存放x和y坐标的数据,101为数据长度
+	  //添加数据，我们这里演示y=x^3,为了正负对称，我们x从-10到+10
+		for (int i = 0; i < 101; i++)
+		{
+			x[i] = i / 5 - 10;
+			y[i] = x[i] * x[i] * x[i];
+		}
+		customPlotViewScan->graph(0)->setData(x, y);
+		customPlotViewScan->xAxis->setRange(-11, 11);
+		customPlotViewScan->yAxis->setRange(-1100, 1100);
 		//3
 		gridLayoutGroupBoxCurrentPose->addWidget(labelXAxis, 0, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
