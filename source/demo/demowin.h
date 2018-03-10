@@ -169,8 +169,9 @@ public:
 		return true;
 	}
 
-	void GetProfiles()
+	void GetAndSaveAndShowProfiles(bool isSave = false)
 	{
+		//0.Define variables
 		vector<double> vdValueX(m_uiResolution);
 		vector<double> vdValueZ(m_uiResolution);
 		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
@@ -181,7 +182,7 @@ public:
 			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
 			return;
 		}
-		else cout << endl << "1.Get profiles: OK";
+		//else cout << endl << "1.Get profiles: OK";
 
 		//2.Convert profiles
 		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
@@ -190,37 +191,31 @@ public:
 			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
 			return;
 		}
-		else cout << endl << "2.Convert profiles: OK";
+		//else cout << endl << "2.Convert profiles: OK";
 
+		//3.Save profiles
+		if (isSave)
+		{
 
+		}
 
-		QVector<double> X = QVector<double>::fromStdVector(vdValueX);
-		QVector<double> Z = QVector<double>::fromStdVector(vdValueZ);
-		customPlotViewScan->addGraph();
-		customPlotViewScan->graph(0)->setData(X, Z);
-		//customPlot.replot();
-		//
-		//for (uint i = 0; i < vdValueX.size(); ++i)
-		//{
-		//	cout << endl << i << ": x = " << vdValueX[i] << "   z = " << vdValueZ[i];
-		//}
-
-		//Mat_<uchar> ima(1280, 1920, (uchar)255);
-		//for (uint j = 0; j < vdValueX.size(); ++j)
-		//{
-		//	ima((int)std::abs(vdValueZ[j] * 10), j) = (uchar)0;
-		//}
-		//namedWindow("aa", 0);
-		//imshow("aa", ima);
-		//waitKey(0);
+		//4.Show profiles
+		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
+		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
+		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+		customPlotViewScan->xAxis->setRange(*minX, *maxX);
+		customPlotViewScan->yAxis->setRange(*minZ, *maxZ);
+		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
+		customPlotViewScan->replot();
 	}
+
 
 
 public:
-	void pushButtonMoveRight_clickded()
-	{
-		GetProfiles();
-	}
+	void pushButtonMoveRight_clickded(){}
 	void pushButtonMoveLeft_clickded() {}
 	void pushButtonMoveForward_clickded() {}
 	void pushButtonMoveBackward_clickded() {}
@@ -228,8 +223,13 @@ public:
 	void pushButtonMoveDown_clickded() {}
 	void pushButtonRotateClockwise_clickded() {}
 	void pushButtonRotateAntiClockwise_clickded() {}
-	void pushButtonReset_clickded() {}
-	void PushButtonStartup_clickded() {}
+	void pushButtonReset_clickded() 
+	{
+		if (timerTestContinousScan->isActive()) timerTestContinousScan->stop(); 
+		else timerTestContinousScan->start(100);
+	}
+	void PushButtonStartup_clickded() { GetAndSaveAndShowProfiles(true); }
+	void timerTestContinousScan_timeout() { GetAndSaveAndShowProfiles(false); }
 public:
 	//1
 	QVBoxLayout *vboxLayoutWorkArea = new QVBoxLayout(this);
@@ -239,7 +239,6 @@ public:
 
 	//2
 	QGridLayout* gridLayoutWidgetScan = new QGridLayout(widgetScan);
-	//QGraphicsView* graphicsViewScan = new QGraphicsView(widgetScan);
 	QCustomPlot* customPlotViewScan = new QCustomPlot(widgetScan);
 	QGroupBox* groupBoxCurrentPose = new QGroupBox("Current Pose", widgetScan);
 	QGroupBox* groupBoxPoseSetting = new QGroupBox("Pose Setting", widgetScan);
@@ -248,16 +247,16 @@ public:
 
 	//3
 	QGridLayout* gridLayoutGroupBoxCurrentPose = new QGridLayout(groupBoxCurrentPose);
-	QLabel* labelXAxis = new QLabel("X Axis:", groupBoxCurrentPose);
+	QLabel* labelXAxis = new QLabel("X Axis", groupBoxCurrentPose);
 	QLineEdit* lineEditXAxis = new QLineEdit("-1", groupBoxCurrentPose);
 	QLabel* labelXmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelYAxis = new QLabel("Y Axis:", groupBoxCurrentPose);
+	QLabel* labelYAxis = new QLabel("Y Axis", groupBoxCurrentPose);
 	QLineEdit* lineEditYAxis = new QLineEdit("-1", groupBoxCurrentPose);
 	QLabel* labelYmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelZAxis = new QLabel("Z Axis:", groupBoxCurrentPose);
+	QLabel* labelZAxis = new QLabel("Z Axis", groupBoxCurrentPose);
 	QLineEdit* lineEditZAxis = new QLineEdit("-1", groupBoxCurrentPose);
 	QLabel* labelZmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelRotate = new QLabel("Rotate:", groupBoxCurrentPose);
+	QLabel* labelRotate = new QLabel("Rotate", groupBoxCurrentPose);
 	QLineEdit* lineEditRotate = new QLineEdit("-1", groupBoxCurrentPose);
 	QLabel* labelRcc = new QLabel(QString::fromLocal8Bit("°"), groupBoxCurrentPose);
 
@@ -277,10 +276,10 @@ public:
 	QLabel* labelDirection = new QLabel("Direction", groupBoxScanSetting);
 	QRadioButton* radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
 	QRadioButton* radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
-	QLabel* labelStartPoint = new QLabel("Start Point:", groupBoxScanSetting);
+	QLabel* labelStartPoint = new QLabel("Start Point", groupBoxScanSetting);
 	QLineEdit* lineEditStartPoint = new QLineEdit("0", groupBoxScanSetting);
 	QLabel* labelStartPointMM = new QLabel("mm", groupBoxScanSetting);
-	QLabel* labelEndPoint = new QLabel("End Point:", groupBoxScanSetting);
+	QLabel* labelEndPoint = new QLabel("End Point", groupBoxScanSetting);
 	QLineEdit* lineEditEndPoint = new QLineEdit("0", groupBoxScanSetting);
 	QLabel* labelEndPointMM = new QLabel("mm", groupBoxScanSetting);
 	QLabel* labelStep = new QLabel("Step", groupBoxScanSetting);
@@ -291,11 +290,19 @@ public:
 	QGridLayout* gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);
 	QPushButton* pushButtonReset = new QPushButton("Reset", groupBoxImplement);
 	QPushButton* PushButtonStartup = new QPushButton("Startup", groupBoxImplement);
+	QTimer* timerTestContinousScan = new QTimer(this);
+
+	//7
+	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
+	QSqlQuery *query = new QSqlQuery("", db);
 
 	MyWidget(QWidget *parent = 0) : QWidget(parent) { createMainUI(); }
 	void createMainUI()
 	{
-		if (initDevice() == false) QApplication::exit();
+		if (initDevice() == false) { QMessageBox::information(this, "", "Fail to connect or open device");  QApplication::exit(); }
+		db.setDatabaseName("./../data/mysqlite.db");
+		if (!db.open()) { QMessageBox::information(this, "", "Fail to open database, details:\n" + db.lastError().text());  QApplication::exit();}
+
 		//0.
 		this->setWindowTitle("Laser Scan");
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
@@ -308,7 +315,6 @@ public:
 		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse");
 
 		//2
-		//gridLayoutWidgetScan->addWidget(graphicsViewScan, 0, 0, 1, 4);
 		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4);
 		gridLayoutWidgetScan->addWidget(groupBoxCurrentPose, 1, 0, 1, 1);
 		gridLayoutWidgetScan->addWidget(groupBoxPoseSetting, 1, 1, 1, 1);
@@ -318,18 +324,6 @@ public:
 		gridLayoutWidgetScan->setColumnStretch(1, 2);
 		gridLayoutWidgetScan->setColumnStretch(2, 2);
 		gridLayoutWidgetScan->setColumnStretch(3, 1);
-		customPlotViewScan->addGraph();
-		QVector<double> x(101), y(101);//分别存放x和y坐标的数据,101为数据长度
-	  //添加数据，我们这里演示y=x^3,为了正负对称，我们x从-10到+10
-		for (int i = 0; i < 101; i++)
-		{
-			x[i] = i / 5 - 10;
-			y[i] = x[i] * x[i] * x[i];
-		}
-		customPlotViewScan->graph(0)->setData(x, y);
-		customPlotViewScan->xAxis->setRange(-11, 11);
-		customPlotViewScan->yAxis->setRange(-1100, 1100);
-		//3
 		gridLayoutGroupBoxCurrentPose->addWidget(labelXAxis, 0, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(labelXmm, 0, 2, 1, 1);
@@ -342,6 +336,7 @@ public:
 		gridLayoutGroupBoxCurrentPose->addWidget(labelRotate, 3, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(labelRcc, 3, 2, 1, 1);
+		customPlotViewScan->addGraph();
 		lineEditXAxis->setEnabled(false);
 		lineEditYAxis->setEnabled(false);
 		lineEditZAxis->setEnabled(false);
@@ -392,6 +387,7 @@ public:
 		connect(pushButtonRotateAntiClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateAntiClockwise_clickded);
 		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clickded);
 		connect(PushButtonStartup, &QPushButton::clicked, this, &MyWidget::PushButtonStartup_clickded);
+		connect(timerTestContinousScan, &QTimer::timeout, this, &MyWidget::timerTestContinousScan_timeout);
 	}
 
 };
