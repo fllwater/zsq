@@ -14,6 +14,9 @@ public:
 	TScannerType m_tscanCONTROLType;
 	uint m_uiResolution = 0;
 	int iRetValue = 0;//buffer
+	long timeid = -1;
+	long scanid = -1;
+	bool saveScan = false;
 public:
 	bool exitDevice() {}
 	bool initDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
@@ -169,7 +172,8 @@ public:
 		return true;
 	}
 
-	void GetAndSaveAndShowProfiles(bool isSave = false)
+public:
+	void GetAndSaveAndShowProfiles()
 	{
 		//0.Define variables
 		vector<double> vdValueX(m_uiResolution);
@@ -194,11 +198,20 @@ public:
 		//else cout << endl << "2.Convert profiles: OK";
 
 		//3.Save profiles
-		if (isSave)
+		if (saveScan)
 		{
-
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(scanid++);
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
+			query.exec();
+			saveScan = false;
+			static int n = 0;
+			cout << endl << "save: " << ++n;
 		}
-
+		
 		//4.Show profiles
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
 		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
@@ -211,8 +224,19 @@ public:
 		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
 		customPlotViewScan->replot();
 	}
-
-
+	void EnableOrDisableControls(bool enable)
+	{
+		pushButtonMoveRight->setEnabled(enable);
+		pushButtonMoveLeft->setEnabled(enable);
+		pushButtonMoveForward->setEnabled(enable);
+		pushButtonMoveBackward->setEnabled(enable);
+		pushButtonMoveUp->setEnabled(enable);
+		pushButtonMoveDown->setEnabled(enable);
+		pushButtonRotateClockwise->setEnabled(enable);
+		pushButtonRotateAntiClockwise->setEnabled(enable);
+		pushButtonReset->setEnabled(enable);
+		PushButtonStartup->setText(enable ? "Startup" : "Stop");
+	}
 
 public:
 	void pushButtonMoveRight_clickded(){}
@@ -223,13 +247,37 @@ public:
 	void pushButtonMoveDown_clickded() {}
 	void pushButtonRotateClockwise_clickded() {}
 	void pushButtonRotateAntiClockwise_clickded() {}
-	void pushButtonReset_clickded() 
-	{
-		if (timerTestContinousScan->isActive()) timerTestContinousScan->stop(); 
-		else timerTestContinousScan->start(100);
+	void pushButtonReset_clickded() {}
+	void PushButtonStartup_clickded() 
+	{ 
+		if (timerContinousScan->isActive())
+		{
+			timerContinousScan->stop();
+			EnableOrDisableControls(true);
+			timeid = -1;
+			scanid = -1;
+			saveScan = false;
+		}
+		else
+		{
+			timerContinousScan->start(100);
+			EnableOrDisableControls(false);
+			timeid = time(0);
+			scanid = 0;
+			saveScan = false;
+
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_catalog (timeid, direction, startpoint, endpoint, step) values (?, ?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(radioButtonXAxis->isChecked() ? "X" : "Y");
+			query.addBindValue(spinBoxStartPoint->value());
+			query.addBindValue(spinBoxEndPoint->value());
+			query.addBindValue(comboBoxStep->currentText().toInt());
+			query.exec();
+		}
 	}
-	void PushButtonStartup_clickded() { GetAndSaveAndShowProfiles(true); }
-	void timerTestContinousScan_timeout() { GetAndSaveAndShowProfiles(false); }
+	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
+	void customPlotViewScan_mousePress(QMouseEvent *event) { saveScan = true; }
 public:
 	//1
 	QVBoxLayout *vboxLayoutWorkArea = new QVBoxLayout(this);
@@ -277,10 +325,10 @@ public:
 	QRadioButton* radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
 	QRadioButton* radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
 	QLabel* labelStartPoint = new QLabel("Start Point", groupBoxScanSetting);
-	QLineEdit* lineEditStartPoint = new QLineEdit("0", groupBoxScanSetting);
+	QSpinBox *spinBoxStartPoint = new QSpinBox(groupBoxScanSetting);
 	QLabel* labelStartPointMM = new QLabel("mm", groupBoxScanSetting);
 	QLabel* labelEndPoint = new QLabel("End Point", groupBoxScanSetting);
-	QLineEdit* lineEditEndPoint = new QLineEdit("0", groupBoxScanSetting);
+	QSpinBox *spinBoxEndPoint = new QSpinBox(groupBoxScanSetting);
 	QLabel* labelEndPointMM = new QLabel("mm", groupBoxScanSetting);
 	QLabel* labelStep = new QLabel("Step", groupBoxScanSetting);
 	QLabel* labelStepMM = new QLabel("mm", groupBoxScanSetting);
@@ -290,11 +338,18 @@ public:
 	QGridLayout* gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);
 	QPushButton* pushButtonReset = new QPushButton("Reset", groupBoxImplement);
 	QPushButton* PushButtonStartup = new QPushButton("Startup", groupBoxImplement);
-	QTimer* timerTestContinousScan = new QTimer(this);
+	QTimer* timerContinousScan = new QTimer(this);
 
 	//7
 	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
-	QSqlQuery *query = new QSqlQuery("", db);
+
+	//8
+	QGridLayout* gridLayoutWidgetAnalyse = new QGridLayout(widgetAnalyse);
+	QTableView* tableViewCatalog = new QTableView(widgetAnalyse);
+	QTableView* tableViewDetails = new QTableView(widgetAnalyse);
+	QSqlTableModel *tableModelCatalog = new QSqlTableModel(widgetAnalyse, db);
+	QSqlQueryModel *queryModelDetails = new QSqlQueryModel(widgetAnalyse);
+	QCustomPlot* customPlotViewAnlyse = new QCustomPlot(widgetAnalyse);
 
 	MyWidget(QWidget *parent = 0) : QWidget(parent) { createMainUI(); }
 	void createMainUI()
@@ -313,6 +368,7 @@ public:
 		vboxLayoutWorkArea->addWidget(tabWidgetScanAnalyse);
 		tabWidgetScanAnalyse->addTab(widgetScan, "Scan");
 		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse");
+		widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
 
 		//2
 		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4);
@@ -358,14 +414,16 @@ public:
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(labelStartPoint, 1, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(lineEditStartPoint, 1, 1, 1, 2);
+		gridLayoutGroupBoxScanSetting->addWidget(spinBoxStartPoint, 1, 1, 1, 2);
 		gridLayoutGroupBoxScanSetting->addWidget(labelStartPointMM, 1, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(labelEndPoint, 2, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(lineEditEndPoint, 2, 1, 1, 2);
+		gridLayoutGroupBoxScanSetting->addWidget(spinBoxEndPoint, 2, 1, 1, 2);
 		gridLayoutGroupBoxScanSetting->addWidget(labelEndPointMM, 2, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(labelStep, 3, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2);
 		gridLayoutGroupBoxScanSetting->addWidget(labelStepMM, 3, 3, 1, 1);
+		spinBoxStartPoint->setMinimum(-100);
+		spinBoxEndPoint->setMinimum(-100);
 		comboBoxStep->addItem("1");
 		comboBoxStep->addItem("10");
 		radioButtonXAxis->setChecked(true);
@@ -387,9 +445,60 @@ public:
 		connect(pushButtonRotateAntiClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateAntiClockwise_clickded);
 		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clickded);
 		connect(PushButtonStartup, &QPushButton::clicked, this, &MyWidget::PushButtonStartup_clickded);
-		connect(timerTestContinousScan, &QTimer::timeout, this, &MyWidget::timerTestContinousScan_timeout);
-	}
+		connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout);
+		connect(customPlotViewScan, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewScan_mousePress);
 
+		//8.
+		gridLayoutWidgetAnalyse->addWidget(tableViewCatalog, 0, 0);
+		gridLayoutWidgetAnalyse->addWidget(tableViewDetails, 0, 1);
+		gridLayoutWidgetAnalyse->addWidget(customPlotViewAnlyse, 1, 0, 1, 2);
+		gridLayoutWidgetAnalyse->setRowStretch(0, 2);
+		gridLayoutWidgetAnalyse->setRowStretch(1, 3);
+		gridLayoutWidgetAnalyse->setColumnStretch(0, 3);
+		gridLayoutWidgetAnalyse->setColumnStretch(1, 2);
+		customPlotViewAnlyse->addGraph();
+
+		tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
+		tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+		tableModelCatalog->setTable("tb_scan_catalog");
+		tableModelCatalog->sort(0, Qt::DescendingOrder);
+		tableModelCatalog->setEditStrategy(QSqlTableModel::OnManualSubmit);
+		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
+		tableViewCatalog->setModel(tableModelCatalog);
+
+		queryModelDetails->sort(0, Qt::DescendingOrder);
+		//queryModelDetails->setQuery("select timeid, scanid from tb_scan_details", db);
+		tableViewDetails->setModel(queryModelDetails);
+
+		connect(tableViewCatalog, &QTableView::clicked, this, &MyWidget::tableViewCatalog_clicked);
+		connect(tableViewDetails, &QTableView::clicked, this, &MyWidget::tableViewDetails_clicked);
+	}
+public:
+	void tableViewCatalog_clicked(QModelIndex modelIndex)
+	{
+		QSqlRecord record = tableModelCatalog->record(modelIndex.row());
+		queryModelDetails->setQuery("select * from tb_scan_details where timeid=" + record.value(0).toString(), db);
+	}
+	void tableViewDetails_clicked(QModelIndex modelIndex)
+	{
+		QSqlRecord record = queryModelDetails->record(modelIndex.row());
+		vector<double> vdValueX(record.value(2).toByteArray().size() / sizeof(double));
+		vector<double> vdValueZ(record.value(3).toByteArray().size() / sizeof(double));
+		memcpy(&vdValueX[0], record.value(2).toByteArray().data(), record.value(2).toByteArray().size());
+		memcpy(&vdValueZ[0], record.value(3).toByteArray().data(), record.value(3).toByteArray().size());
+
+		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
+		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
+		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+		customPlotViewAnlyse->xAxis->setRange(*minX, *maxX);
+		customPlotViewAnlyse->yAxis->setRange(*minZ, *maxZ);
+		customPlotViewAnlyse->graph(0)->setData(vdValueXX, vdValueZZ);
+		customPlotViewAnlyse->replot();
+	}
 };
 
 
