@@ -9,15 +9,125 @@
 
 class MyWidget : public QWidget
 {
-public:
+//Device control module
+
+public://Serialport function
+	queue<uchar> queueXYZR;
+	void serialPortXYZR_readyRead() 
+	{
+		cout << endl << "1";
+		//1.
+		QByteArray xyz= serialPortXYZR.readAll();
+		for (int i = 0; i < xyz.size(); ++i) queueXYZR.push((uchar)xyz[i]);
+
+		//2.
+		while (queueXYZR.size() >= 20 && queueXYZR.front() != 0x57) queueXYZR.pop();
+
+		//3.
+		if (queueXYZR.size() < 20) return;
+
+		//4.
+		uchar data[18], sumCalc = (uchar)0;
+		queueXYZR.pop();
+		for (int i = 0; i < 18; ++i)
+		{
+			data[i] = queueXYZR.front();
+			queueXYZR.pop();
+			sumCalc += data[i];
+		}
+		uchar sumTrue = queueXYZR.front();
+		queueXYZR.pop();
+		
+		//5.
+		if (sumCalc != sumTrue) return;
+
+		//6.
+		lineEditXAxis->setText(aaa::num2string(((int*)(data + 1))[0]).c_str());
+		lineEditYAxis->setText(aaa::num2string(((int*)(data + 1))[1]).c_str());
+		lineEditZAxis->setText(aaa::num2string(((int*)(data + 1))[2]).c_str());
+		lineEditRotate->setText(aaa::num2string(((int*)(data + 1))[3]).c_str());
+	}
+	void serialPortXYZR_bytesWritten() {}
+	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
+
+	void serialPortCtrl_readyRead() {}
+	void serialPortCtrl_bytesWritten() {}
+	void serialPortCtrl_error() {}
+
+public://Sqlite function
+	long timeid = -1;
+	long scanid = -1;
+	bool saveScan = false;
+	void GetAndSaveAndShowProfiles()
+	{
+		//0.Define variables
+		vector<double> vdValueX(m_uiResolution);
+		vector<double> vdValueZ(m_uiResolution);
+		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
+
+																		//1.Get profiles
+		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
+		{
+			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "1.Get profiles: OK";
+
+		//2.Convert profiles
+		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
+		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
+		{
+			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "2.Convert profiles: OK";
+
+		//3.Save profiles
+		if (saveScan)
+		{
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(scanid++);
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
+			query.exec();
+			saveScan = false;
+			static int n = 0;
+			cout << endl << "save: " << ++n;
+		}
+
+		//4.Show profiles
+		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
+		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
+		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+		customPlotViewScan->xAxis->setRange(*minX, *maxX);
+		customPlotViewScan->yAxis->setRange(*minZ, *maxZ);
+		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
+		customPlotViewScan->replot();
+	}
+	void EnableOrDisableControls(bool enable)
+	{
+		pushButtonMoveRight->setEnabled(enable);
+		pushButtonMoveLeft->setEnabled(enable);
+		pushButtonMoveForward->setEnabled(enable);
+		pushButtonMoveBackward->setEnabled(enable);
+		pushButtonMoveUp->setEnabled(enable);
+		pushButtonMoveDown->setEnabled(enable);
+		pushButtonRotateClockwise->setEnabled(enable);
+		pushButtonRotateAntiClockwise->setEnabled(enable);
+		pushButtonReset->setEnabled(enable);
+		PushButtonStartup->setText(enable ? "Startup" : "Stop");
+	}
+
+public://Ethernet function
 	CInterfaceLLT* m_pLLT = NULL;
 	TScannerType m_tscanCONTROLType;
 	uint m_uiResolution = 0;
 	int iRetValue = 0;//buffer
-	long timeid = -1;
-	long scanid = -1;
-	bool saveScan = false;
-public:
 	bool exitDevice() {}
 	bool initDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
 	{
@@ -173,72 +283,6 @@ public:
 	}
 
 public:
-	void GetAndSaveAndShowProfiles()
-	{
-		//0.Define variables
-		vector<double> vdValueX(m_uiResolution);
-		vector<double> vdValueZ(m_uiResolution);
-		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
-
-		//1.Get profiles
-		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
-		{
-			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
-		}
-		//else cout << endl << "1.Get profiles: OK";
-
-		//2.Convert profiles
-		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
-		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
-		{
-			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
-		}
-		//else cout << endl << "2.Convert profiles: OK";
-
-		//3.Save profiles
-		if (saveScan)
-		{
-			QSqlQuery query(db);
-			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
-			query.addBindValue(timeid);
-			query.addBindValue(scanid++);
-			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
-			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
-			query.exec();
-			saveScan = false;
-			static int n = 0;
-			cout << endl << "save: " << ++n;
-		}
-		
-		//4.Show profiles
-		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
-		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
-		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
-		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
-		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
-		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
-		customPlotViewScan->xAxis->setRange(*minX, *maxX);
-		customPlotViewScan->yAxis->setRange(*minZ, *maxZ);
-		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
-		customPlotViewScan->replot();
-	}
-	void EnableOrDisableControls(bool enable)
-	{
-		pushButtonMoveRight->setEnabled(enable);
-		pushButtonMoveLeft->setEnabled(enable);
-		pushButtonMoveForward->setEnabled(enable);
-		pushButtonMoveBackward->setEnabled(enable);
-		pushButtonMoveUp->setEnabled(enable);
-		pushButtonMoveDown->setEnabled(enable);
-		pushButtonRotateClockwise->setEnabled(enable);
-		pushButtonRotateAntiClockwise->setEnabled(enable);
-		pushButtonReset->setEnabled(enable);
-		PushButtonStartup->setText(enable ? "Startup" : "Stop");
-	}
-
-public:
 	void pushButtonMoveRight_clickded(){}
 	void pushButtonMoveLeft_clickded() {}
 	void pushButtonMoveForward_clickded() {}
@@ -278,6 +322,7 @@ public:
 	}
 	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
 	void customPlotViewScan_mousePress(QMouseEvent *event) { saveScan = true; }
+
 public:
 	//1
 	QVBoxLayout *vboxLayoutWorkArea = new QVBoxLayout(this);
@@ -344,6 +389,11 @@ public:
 	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
 
 	//8
+	QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
+	QSerialPort serialPortXYZR;
+	QSerialPort serialPortCtrl;
+
+	//9
 	QGridLayout* gridLayoutWidgetAnalyse = new QGridLayout(widgetAnalyse);
 	QTableView* tableViewCatalog = new QTableView(widgetAnalyse);
 	QTableView* tableViewDetails = new QTableView(widgetAnalyse);
@@ -448,6 +498,18 @@ public:
 		connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout);
 		connect(customPlotViewScan, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewScan_mousePress);
 
+		
+		connect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
+		connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
+		connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
+		connect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
+		connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
+		connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
+		serialPortXYZR.setPort(listSerialPortInfo[1]);
+		serialPortXYZR.setBaudRate(460800);
+		serialPortXYZR.open(QIODevice::ReadWrite);
+		cout << endl << serialPortXYZR.portName().toStdString();
+
 		//8.
 		gridLayoutWidgetAnalyse->addWidget(tableViewCatalog, 0, 0);
 		gridLayoutWidgetAnalyse->addWidget(tableViewDetails, 0, 1);
@@ -474,6 +536,9 @@ public:
 		connect(tableViewCatalog, &QTableView::clicked, this, &MyWidget::tableViewCatalog_clicked);
 		connect(tableViewDetails, &QTableView::clicked, this, &MyWidget::tableViewDetails_clicked);
 	}
+
+
+//Data analyse module
 public:
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
 	{
