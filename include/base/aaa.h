@@ -5,12 +5,11 @@
 
 namespace aaa
 {
-	template<typename depth> string num2string(depth v, int isInteger = 1)
+	template<typename depth> string num2string(depth v, int decimalDigits = 0)
 	{
-		char ss[50];
-		if (isInteger) sprintf(ss, "%.lf", (double)v);
-		else sprintf(ss, "%lf", (double)v);
-		return string(ss);
+		char format[10]; sprintf(format, "%%.%dlf", decimalDigits);
+		char result[50]; sprintf(result, format, (double)v);
+		return string(result);
 	}
 	void integral(Mat_<uchar> src, Mat_<int> dst, int rows, int cols)
 	{	//每点的值包含此点所在行列的值

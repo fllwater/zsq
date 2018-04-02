@@ -9,128 +9,251 @@
 
 class MyWidget : public QWidget
 {
-//Device control module
-
-public://Serialport function
-	queue<uchar> queueXYZR;
-	void serialPortXYZR_readyRead() 
+public:
+	MyWidget(QWidget *parent = 0) : QWidget(parent) {createMainUI(); }
+	
+public://Create UI
+#if 1
+	QVBoxLayout *vboxLayoutWorkArea = new QVBoxLayout(this);//addin1
+	QTabWidget *tabWidgetScanAnalyse = new QTabWidget(this);//addin2
+		QWidget *widgetScan = new QWidget(tabWidgetScanAnalyse);
+			QGridLayout *gridLayoutWidgetScan = new QGridLayout(widgetScan);//addin3
+			QCustomPlot *customPlotViewScan = new QCustomPlot(widgetScan);
+			QGroupBox *groupBoxPortSetting = new QGroupBox("Communication Setting", widgetScan);
+				QGridLayout *gridLayoutGroupBoxPortSetting = new QGridLayout(groupBoxPortSetting);//addin4
+				QComboBox *comboBoxDataPort = new QComboBox(groupBoxPortSetting);
+				QPushButton *pushButtonOpenDataPort = new QPushButton("Open", groupBoxPortSetting);
+				QComboBox *comboBoxCtrlPort = new QComboBox(groupBoxPortSetting);
+				QPushButton *pushButtonOpenCtrlPort = new QPushButton("Open", groupBoxPortSetting);
+				QPushButton *pushButtonOpenEthernet = new QPushButton("Open Ethernet", groupBoxPortSetting);
+				QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();//special
+			QGroupBox *groupBoxCurrentPose = new QGroupBox("Current Pose", widgetScan);
+				QGridLayout *gridLayoutGroupBoxCurrentPose = new QGridLayout(groupBoxCurrentPose);//addin5
+				QLineEdit *lineEditXAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+				QLineEdit *lineEditYAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+				QLineEdit *lineEditZAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+				QLineEdit *lineEditRotate = new QLineEdit("-1.000", groupBoxCurrentPose);
+			QGroupBox *groupBoxPoseSetting = new QGroupBox("Pose Setting", widgetScan);
+				QGridLayout *gridLayoutPoseSetting = new QGridLayout(groupBoxPoseSetting);//addin6
+				QPushButton *pushButtonMoveRight = new QPushButton("Move Right", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveLeft = new QPushButton("Move Left", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveForward = new QPushButton("Move Forward", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveBackward = new QPushButton("Move Backward", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveUp = new QPushButton("Move Up", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveDown = new QPushButton("Move Down", groupBoxPoseSetting);
+				QPushButton *pushButtonRotateClockwise = new QPushButton("Move Clockwise", groupBoxPoseSetting);
+				QPushButton *pushButtonRotateAntiClockwise = new QPushButton("Move AntiClockwise", groupBoxPoseSetting);
+			QGroupBox *groupBoxScanSetting = new QGroupBox("Scan Setting", widgetScan);
+				QGridLayout *gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);//addin7
+				QRadioButton *radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
+				QRadioButton *radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
+				QSpinBox *spinBoxStartPoint = new QSpinBox(groupBoxScanSetting);
+				QSpinBox *spinBoxEndPoint = new QSpinBox(groupBoxScanSetting);
+				QComboBox *comboBoxStep = new QComboBox(groupBoxScanSetting);
+			QGroupBox *groupBoxImplement = new QGroupBox("Implement", widgetScan);
+				QGridLayout *gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);//addin8
+				QPushButton *pushButtonReset = new QPushButton("Reset", groupBoxImplement);
+				QPushButton *PushButtonStartup = new QPushButton("Startup", groupBoxImplement);
+		QWidget *widgetAnalyse = new QWidget(tabWidgetScanAnalyse);
+			QGridLayout *gridLayoutWidgetAnalyse = new QGridLayout(widgetAnalyse);//addin9
+			QTableView *tableViewCatalog = new QTableView(widgetAnalyse);
+			QTableView *tableViewDetails = new QTableView(widgetAnalyse);
+			QCustomPlot *customPlotViewAnlyse = new QCustomPlot(widgetAnalyse);
+			QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");//addin10
+			QSqlTableModel *tableModelCatalog = new QSqlTableModel(widgetAnalyse, db);
+			QSqlQueryModel *queryModelDetails = new QSqlQueryModel(widgetAnalyse);		
+#endif
+	void createMainUI()
 	{
-		cout << endl << "1";
-		//1.
-		QByteArray xyz= serialPortXYZR.readAll();
-		for (int i = 0; i < xyz.size(); ++i) queueXYZR.push((uchar)xyz[i]);
+		//0.
+		this->setWindowTitle("Laser Scan");
+		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
+		this->setMinimumSize(QSize(800, 600));
+		this->setFont(QFont("", 20, QFont::Thin));
 
-		//2.
-		while (queueXYZR.size() >= 20 && queueXYZR.front() != 0x57) queueXYZR.pop();
+		//addin1
+		vboxLayoutWorkArea->addWidget(tabWidgetScanAnalyse);
 
-		//3.
-		if (queueXYZR.size() < 20) return;
+		//addin2
+		tabWidgetScanAnalyse->addTab(widgetScan, "Scan");
+		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
 
-		//4.
-		uchar data[18], sumCalc = (uchar)0;
-		queueXYZR.pop();
-		for (int i = 0; i < 18; ++i)
-		{
-			data[i] = queueXYZR.front();
-			queueXYZR.pop();
-			sumCalc += data[i];
-		}
-		uchar sumTrue = queueXYZR.front();
-		queueXYZR.pop();
-		
-		//5.
-		if (sumCalc != sumTrue) return;
+		//addin3
+		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4); customPlotViewScan->addGraph();
+		gridLayoutWidgetScan->addWidget(groupBoxPortSetting, 1, 0, 1, 4);
+		gridLayoutWidgetScan->addWidget(groupBoxCurrentPose, 2, 0, 1, 1);
+		gridLayoutWidgetScan->addWidget(groupBoxPoseSetting, 2, 1, 1, 1);
+		gridLayoutWidgetScan->addWidget(groupBoxScanSetting, 2, 2, 1, 1);
+		gridLayoutWidgetScan->addWidget(groupBoxImplement, 2, 3, 1, 1);
+		gridLayoutWidgetScan->setRowStretch(0, 7);
+		gridLayoutWidgetScan->setRowStretch(1, 1);
+		gridLayoutWidgetScan->setRowStretch(2, 2);
+		gridLayoutWidgetScan->setColumnStretch(0, 2);
+		gridLayoutWidgetScan->setColumnStretch(1, 2);
+		gridLayoutWidgetScan->setColumnStretch(2, 2);
+		gridLayoutWidgetScan->setColumnStretch(3, 1);
+		connect(customPlotViewScan, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewScan_mousePress);
 
-		//6.
-		lineEditXAxis->setText(aaa::num2string(((int*)(data + 1))[0]).c_str());
-		lineEditYAxis->setText(aaa::num2string(((int*)(data + 1))[1]).c_str());
-		lineEditZAxis->setText(aaa::num2string(((int*)(data + 1))[2]).c_str());
-		lineEditRotate->setText(aaa::num2string(((int*)(data + 1))[3]).c_str());
+		//addin4
+		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("Data SerialPort", groupBoxPortSetting), 0, 0, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(comboBoxDataPort, 0, 1, 1, 1); for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxDataPort->addItem(listSerialPortInfo[i].portName());
+		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenDataPort, 0, 2, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("Ctrl SerialPort", groupBoxPortSetting), 0, 4, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(comboBoxCtrlPort, 0, 5, 1, 1); for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxCtrlPort->addItem(listSerialPortInfo[i].portName());
+		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenCtrlPort, 0, 6, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenEthernet, 0, 8, 1, 1);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(0, 0);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(1, 2);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(2, 1);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(3, 1);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(4, 0);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(5, 2);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(6, 1);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(7, 1);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(8, 1);
+		connect(pushButtonOpenDataPort, &QPushButton::clicked, this, &MyWidget::pushButtonOpenDataPort_clickded);
+		connect(pushButtonOpenCtrlPort, &QPushButton::clicked, this, &MyWidget::pushButtonOpenCtrlPort_clickded);
+		connect(pushButtonOpenEthernet, &QPushButton::clicked, this, &MyWidget::pushButtonOpenEthernet_clickded);
+
+		//addin5
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("X Axis", groupBoxCurrentPose), 0, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1); lineEditXAxis->setEnabled(false);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 0, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Y Axis", groupBoxCurrentPose), 1, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(lineEditYAxis, 1, 1, 1, 1); lineEditYAxis->setEnabled(false);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 1, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Z Axis", groupBoxCurrentPose), 2, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(lineEditZAxis, 2, 1, 1, 1); lineEditZAxis->setEnabled(false);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 2, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Rotate", groupBoxCurrentPose), 3, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1); lineEditRotate->setEnabled(false);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel(QString::fromLocal8Bit("°"), groupBoxCurrentPose), 3, 2, 1, 1);
+
+		//addin6
+		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveLeft, 0, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveForward, 1, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveBackward, 1, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveUp, 2, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
+		connect(pushButtonMoveRight, &QPushButton::clicked, this, &MyWidget::pushButtonMoveRight_clickded);
+		connect(pushButtonMoveLeft, &QPushButton::clicked, this, &MyWidget::pushButtonMoveLeft_clickded);
+		connect(pushButtonMoveForward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveForward_clickded);
+		connect(pushButtonMoveBackward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveBackward_clickded);
+		connect(pushButtonMoveUp, &QPushButton::clicked, this, &MyWidget::pushButtonMoveUp_clickded);
+		connect(pushButtonMoveDown, &QPushButton::clicked, this, &MyWidget::pushButtonMoveDown_clickded);
+		connect(pushButtonRotateClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateClockwise_clickded);
+		connect(pushButtonRotateAntiClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateAntiClockwise_clickded);
+
+		//addin7
+		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Direction", groupBoxScanSetting), 0, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Start Point", groupBoxScanSetting), 1, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(spinBoxStartPoint, 1, 1, 1, 2); spinBoxStartPoint->setMinimum(-100);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 1, 3, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("End Point", groupBoxScanSetting), 2, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(spinBoxEndPoint, 2, 1, 1, 2); spinBoxEndPoint->setMinimum(-100);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 2, 3, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Step", groupBoxScanSetting), 3, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 3, 3, 1, 1);
+
+		//addin8
+		gridLayoutGroupBoxImplement->addWidget(pushButtonReset, 0, 0, 1, 1); pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+		gridLayoutGroupBoxImplement->addWidget(PushButtonStartup, 1, 0, 1, 1); PushButtonStartup->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clickded);
+		connect(PushButtonStartup, &QPushButton::clicked, this, &MyWidget::PushButtonStartup_clickded);
+
+		//addin9
+		gridLayoutWidgetAnalyse->addWidget(tableViewCatalog, 0, 0); tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
+		gridLayoutWidgetAnalyse->addWidget(tableViewDetails, 0, 1); tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
+		gridLayoutWidgetAnalyse->addWidget(customPlotViewAnlyse, 1, 0, 1, 2); customPlotViewAnlyse->addGraph();
+		gridLayoutWidgetAnalyse->setRowStretch(0, 2);
+		gridLayoutWidgetAnalyse->setRowStretch(1, 3);
+		gridLayoutWidgetAnalyse->setColumnStretch(0, 3);
+		gridLayoutWidgetAnalyse->setColumnStretch(1, 2);
+		connect(tableViewCatalog, &QTableView::clicked, this, &MyWidget::tableViewCatalog_clicked);
+		connect(tableViewDetails, &QTableView::clicked, this, &MyWidget::tableViewDetails_clicked);
+
+		//addin10
+		db.setDatabaseName("./../data/mysqlite.db");
+		if (!db.open()) { QMessageBox::information(this, "", "Fail to open database, details:\n" + db.lastError().text());  QApplication::exit(); }
+
+		tableModelCatalog->setTable("tb_scan_catalog");
+		tableModelCatalog->sort(0, Qt::DescendingOrder);
+		tableModelCatalog->setEditStrategy(QSqlTableModel::OnManualSubmit);
+		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
+		tableViewCatalog->setModel(tableModelCatalog);
+
+		queryModelDetails->sort(0, Qt::DescendingOrder);
+		//queryModelDetails->setQuery("select timeid, scanid from tb_scan_details", db);
+		tableViewDetails->setModel(queryModelDetails);
 	}
-	void serialPortXYZR_bytesWritten() {}
-	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
-
-	void serialPortCtrl_readyRead() {}
-	void serialPortCtrl_bytesWritten() {}
-	void serialPortCtrl_error() {}
-
-public://Sqlite function
-	long timeid = -1;
-	long scanid = -1;
-	bool saveScan = false;
-	void GetAndSaveAndShowProfiles()
+	
+public://Init serialport
+	QSerialPort serialPortXYZR;
+	QSerialPort serialPortCtrl;
+	void pushButtonOpenDataPort_clickded() 
 	{
-		//0.Define variables
-		vector<double> vdValueX(m_uiResolution);
-		vector<double> vdValueZ(m_uiResolution);
-		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
-
-																		//1.Get profiles
-		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
+		if (serialPortXYZR.isOpen())
 		{
-			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
+			serialPortXYZR.close();
+			pushButtonOpenDataPort->setText("Open");
+			disconnect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
+			disconnect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
+			disconnect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
 		}
-		//else cout << endl << "1.Get profiles: OK";
-
-		//2.Convert profiles
-		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
-		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
+		else
 		{
-			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
+			serialPortXYZR.setPort(QSerialPortInfo(comboBoxDataPort->currentText()));
+			serialPortXYZR.setBaudRate(460800);
+			if (serialPortXYZR.open(QIODevice::ReadWrite))
+			{
+				pushButtonOpenDataPort->setText("Close");
+				connect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
+				connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
+				connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
+			}
+			else QMessageBox::information(this, "", serialPortXYZR.portName() + " failed to be opened");
 		}
-		//else cout << endl << "2.Convert profiles: OK";
-
-		//3.Save profiles
-		if (saveScan)
-		{
-			QSqlQuery query(db);
-			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
-			query.addBindValue(timeid);
-			query.addBindValue(scanid++);
-			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
-			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
-			query.exec();
-			saveScan = false;
-			static int n = 0;
-			cout << endl << "save: " << ++n;
-		}
-
-		//4.Show profiles
-		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
-		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
-		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
-		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
-		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
-		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
-		customPlotViewScan->xAxis->setRange(*minX, *maxX);
-		customPlotViewScan->yAxis->setRange(*minZ, *maxZ);
-		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
-		customPlotViewScan->replot();
 	}
-	void EnableOrDisableControls(bool enable)
+	void pushButtonOpenCtrlPort_clickded() 
 	{
-		pushButtonMoveRight->setEnabled(enable);
-		pushButtonMoveLeft->setEnabled(enable);
-		pushButtonMoveForward->setEnabled(enable);
-		pushButtonMoveBackward->setEnabled(enable);
-		pushButtonMoveUp->setEnabled(enable);
-		pushButtonMoveDown->setEnabled(enable);
-		pushButtonRotateClockwise->setEnabled(enable);
-		pushButtonRotateAntiClockwise->setEnabled(enable);
-		pushButtonReset->setEnabled(enable);
-		PushButtonStartup->setText(enable ? "Startup" : "Stop");
+		if (serialPortCtrl.isOpen())
+		{
+			serialPortCtrl.close();
+			pushButtonOpenCtrlPort->setText("Open");
+			disconnect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
+			disconnect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
+			disconnect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
+		}
+		else
+		{
+			serialPortCtrl.setPort(QSerialPortInfo(comboBoxDataPort->currentText()));
+			serialPortCtrl.setBaudRate(460800);
+			if (serialPortCtrl.open(QIODevice::ReadWrite))
+			{
+				pushButtonOpenCtrlPort->setText("Close");
+				connect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
+				connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
+				connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
+			}
+			else QMessageBox::information(this, "", serialPortCtrl.portName() + " failed to be opened");
+		}
 	}
 
-public://Ethernet function
-	CInterfaceLLT* m_pLLT = NULL;
+public://Init ethernet
+	CInterfaceLLT *m_pLLT = NULL;
 	TScannerType m_tscanCONTROLType;
 	uint m_uiResolution = 0;
-	int iRetValue = 0;//buffer
-	bool exitDevice() {}
+	QTimer *timerContinousScan = new QTimer(this);
 	bool initDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
 	{
+		int iRetValue = 0;//buffer
 #if 1
 		//1.Load LLT.dll
 		bool bLoadError;
@@ -281,9 +404,80 @@ public://Ethernet function
 
 		return true;
 	}
+	void pushButtonOpenEthernet_clickded()
+	{
+		if (m_pLLT == NULL)
+		{
+			if (initDevice()) 
+			{ 
+				pushButtonOpenEthernet->setText("Close");
+				connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout); 
+			}
+			else QMessageBox::information(this, "", "Fail to connect or open device"); 
+		}
+		else
+		{
+			delete m_pLLT;
+			m_tscanCONTROLType = TScannerType::StandardType;
+			m_uiResolution = 0;
+			pushButtonOpenEthernet->setText("Open");
+			disconnect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout);
+		}
+	}
+	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
 
-public:
-	void pushButtonMoveRight_clickded(){}
+public://Use serialport
+	queue<uchar> queueXYZR;
+	float realtimeX = FLT_MIN;
+	float realtimeY = FLT_MIN;
+	float realtimeZ = FLT_MIN;
+	float realtimeR = FLT_MIN;
+	void serialPortXYZR_readyRead()
+	{
+		//1.
+		QByteArray xyz = serialPortXYZR.readAll();
+		for (int i = 0; i < xyz.size(); ++i) queueXYZR.push((uchar)xyz[i]);
+
+		//2.
+		while (queueXYZR.size() >= 20 && queueXYZR.front() != 0x57) queueXYZR.pop();
+
+		//3.
+		if (queueXYZR.size() < 20) return;
+
+		//4.
+		uchar data[18], sumCalc = (uchar)0;
+		queueXYZR.pop();
+		for (int i = 0; i < 18; ++i)
+		{
+			data[i] = queueXYZR.front();
+			queueXYZR.pop();
+			sumCalc += data[i];
+		}
+		uchar sumTrue = queueXYZR.front();
+		queueXYZR.pop();
+
+		//5.
+		if (sumCalc != sumTrue) return;
+
+		//6.
+		realtimeX = ((int*)(data + 1))[0] / 1000000.f;
+		realtimeY = ((int*)(data + 1))[1] / 1000000.f;
+		realtimeZ = ((int*)(data + 1))[2] / 1000000.f;
+		realtimeR = ((int*)(data + 1))[3] / 1000000.f;
+		lineEditXAxis->setText(aaa::num2string(realtimeX, 3).c_str());
+		lineEditYAxis->setText(aaa::num2string(realtimeY, 3).c_str());
+		lineEditZAxis->setText(aaa::num2string(realtimeZ, 3).c_str());
+		lineEditRotate->setText(aaa::num2string(realtimeR, 3).c_str());
+	}
+	void serialPortXYZR_bytesWritten() {/*no use*/}
+	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
+
+	void serialPortCtrl_readyRead() {/*use syn mode*/ }
+	void serialPortCtrl_bytesWritten() {/*use syn mode*/}
+	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
+	
+public://
+	void pushButtonMoveRight_clickded() {}
 	void pushButtonMoveLeft_clickded() {}
 	void pushButtonMoveForward_clickded() {}
 	void pushButtonMoveBackward_clickded() {}
@@ -292,24 +486,118 @@ public:
 	void pushButtonRotateClockwise_clickded() {}
 	void pushButtonRotateAntiClockwise_clickded() {}
 	void pushButtonReset_clickded() {}
-	void PushButtonStartup_clickded() 
-	{ 
+public://
+	long timeid = -1;
+	long scanid = -1;
+	float lasttimeX = FLT_MAX;
+	float lasttimeY = FLT_MAX;
+	float lasttimeZ = FLT_MAX;
+	float lasttimeR = FLT_MAX;
+	bool enableSave = false;
+	bool clickSave = false;
+	void GetAndSaveAndShowProfiles()
+	{
+		int iRetValue = 0;//buffer
+
+		//0.Define variables
+		vector<double> vdValueX(m_uiResolution);
+		vector<double> vdValueZ(m_uiResolution);
+		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
+
+		//1.Get profiles
+		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
+		{
+			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "1.Get profiles: OK";
+
+		//2.Convert profiles
+		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
+		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
+		{
+			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "2.Convert profiles: OK";
+
+		//3.Save profiles
+		if((enableSave && radioButtonXAxis->isChecked() && lasttimeX - realtimeX > comboBoxStep->currentText().toInt()) ||
+			(enableSave && radioButtonYAxis->isChecked() && lasttimeY - realtimeY > comboBoxStep->currentText().toInt()) || 
+			clickSave)
+		{
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(scanid++);
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
+			query.exec();
+
+			lasttimeX = realtimeX;
+			lasttimeY = realtimeY;
+			clickSave = false;
+			static int n = 0;
+			this->setStatusTip(QString("saved: ") + aaa::num2string(++n).c_str());
+		}
+
+		//4.Show profiles
+		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
+		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
+		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+		customPlotViewScan->xAxis->setRange(*minX, *maxX);
+		customPlotViewScan->yAxis->setRange(*minZ, *maxZ);
+		customPlotViewScan->graph(0)->setData(vdValueXX, vdValueZZ);
+		customPlotViewScan->replot();
+	}
+	void EnableOrDisableControls(bool enable)
+	{
+		pushButtonOpenDataPort->setEnabled(enable);
+		pushButtonOpenCtrlPort->setEnabled(enable);
+		pushButtonOpenEthernet->setEnabled(enable);
+		pushButtonMoveRight->setEnabled(enable);
+		pushButtonMoveLeft->setEnabled(enable);
+		pushButtonMoveForward->setEnabled(enable);
+		pushButtonMoveBackward->setEnabled(enable);
+		pushButtonMoveUp->setEnabled(enable);
+		pushButtonMoveDown->setEnabled(enable);
+		pushButtonRotateClockwise->setEnabled(enable);
+		pushButtonRotateAntiClockwise->setEnabled(enable);
+		pushButtonReset->setEnabled(enable);
+		PushButtonStartup->setText(enable ? "Startup" : "Stop");
+	}
+	void customPlotViewScan_mousePress(QMouseEvent *event) { clickSave = true; }
+
+	void PushButtonStartup_clickded()
+	{
 		if (timerContinousScan->isActive())
 		{
+			//1.
 			timerContinousScan->stop();
 			EnableOrDisableControls(true);
 			timeid = -1;
 			scanid = -1;
-			saveScan = false;
+			enableSave = false;
+			clickSave = false;
+
+			//2.
 		}
 		else
 		{
+			//1.
 			timerContinousScan->start(100);
 			EnableOrDisableControls(false);
 			timeid = time(0);
 			scanid = 0;
-			saveScan = false;
+			enableSave = true;
+			clickSave = true;
 
+			//2.
+
+			//3.
 			QSqlQuery query(db);
 			query.prepare("insert into tb_scan_catalog (timeid, direction, startpoint, endpoint, step) values (?, ?, ?, ?, ?)");
 			query.addBindValue(timeid);
@@ -320,226 +608,10 @@ public:
 			query.exec();
 		}
 	}
-	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
-	void customPlotViewScan_mousePress(QMouseEvent *event) { saveScan = true; }
-
-public:
-	//1
-	QVBoxLayout *vboxLayoutWorkArea = new QVBoxLayout(this);
-	QTabWidget* tabWidgetScanAnalyse = new QTabWidget(this);
-	QWidget* widgetScan = new QWidget(tabWidgetScanAnalyse);
-	QWidget* widgetAnalyse = new QWidget(tabWidgetScanAnalyse);
-
-	//2
-	QGridLayout* gridLayoutWidgetScan = new QGridLayout(widgetScan);
-	QCustomPlot* customPlotViewScan = new QCustomPlot(widgetScan);
-	QGroupBox* groupBoxCurrentPose = new QGroupBox("Current Pose", widgetScan);
-	QGroupBox* groupBoxPoseSetting = new QGroupBox("Pose Setting", widgetScan);
-	QGroupBox* groupBoxScanSetting = new QGroupBox("Scan Setting", widgetScan);
-	QGroupBox* groupBoxImplement = new QGroupBox("Implement", widgetScan);
-
-	//3
-	QGridLayout* gridLayoutGroupBoxCurrentPose = new QGridLayout(groupBoxCurrentPose);
-	QLabel* labelXAxis = new QLabel("X Axis", groupBoxCurrentPose);
-	QLineEdit* lineEditXAxis = new QLineEdit("-1", groupBoxCurrentPose);
-	QLabel* labelXmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelYAxis = new QLabel("Y Axis", groupBoxCurrentPose);
-	QLineEdit* lineEditYAxis = new QLineEdit("-1", groupBoxCurrentPose);
-	QLabel* labelYmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelZAxis = new QLabel("Z Axis", groupBoxCurrentPose);
-	QLineEdit* lineEditZAxis = new QLineEdit("-1", groupBoxCurrentPose);
-	QLabel* labelZmm = new QLabel("mm", groupBoxCurrentPose);
-	QLabel* labelRotate = new QLabel("Rotate", groupBoxCurrentPose);
-	QLineEdit* lineEditRotate = new QLineEdit("-1", groupBoxCurrentPose);
-	QLabel* labelRcc = new QLabel(QString::fromLocal8Bit("°"), groupBoxCurrentPose);
-
-	//4
-	QGridLayout* gridLayoutPoseSetting = new QGridLayout(groupBoxPoseSetting);
-	QPushButton* pushButtonMoveRight = new QPushButton("Move Right", groupBoxPoseSetting);
-	QPushButton* pushButtonMoveLeft = new QPushButton("Move Left", groupBoxPoseSetting);
-	QPushButton* pushButtonMoveForward = new QPushButton("Move Forward", groupBoxPoseSetting);
-	QPushButton* pushButtonMoveBackward = new QPushButton("Move Backward", groupBoxPoseSetting);
-	QPushButton* pushButtonMoveUp = new QPushButton("Move Up", groupBoxPoseSetting);
-	QPushButton* pushButtonMoveDown = new QPushButton("Move Down", groupBoxPoseSetting);
-	QPushButton* pushButtonRotateClockwise = new QPushButton("Move Clockwise", groupBoxPoseSetting);
-	QPushButton* pushButtonRotateAntiClockwise = new QPushButton("Move AntiClockwise", groupBoxPoseSetting);
-
-	//5
-	QGridLayout* gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);
-	QLabel* labelDirection = new QLabel("Direction", groupBoxScanSetting);
-	QRadioButton* radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
-	QRadioButton* radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
-	QLabel* labelStartPoint = new QLabel("Start Point", groupBoxScanSetting);
-	QSpinBox *spinBoxStartPoint = new QSpinBox(groupBoxScanSetting);
-	QLabel* labelStartPointMM = new QLabel("mm", groupBoxScanSetting);
-	QLabel* labelEndPoint = new QLabel("End Point", groupBoxScanSetting);
-	QSpinBox *spinBoxEndPoint = new QSpinBox(groupBoxScanSetting);
-	QLabel* labelEndPointMM = new QLabel("mm", groupBoxScanSetting);
-	QLabel* labelStep = new QLabel("Step", groupBoxScanSetting);
-	QLabel* labelStepMM = new QLabel("mm", groupBoxScanSetting);
-	QComboBox* comboBoxStep = new QComboBox(groupBoxScanSetting);
-
-	//6
-	QGridLayout* gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);
-	QPushButton* pushButtonReset = new QPushButton("Reset", groupBoxImplement);
-	QPushButton* PushButtonStartup = new QPushButton("Startup", groupBoxImplement);
-	QTimer* timerContinousScan = new QTimer(this);
-
-	//7
-	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
-
-	//8
-	QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
-	QSerialPort serialPortXYZR;
-	QSerialPort serialPortCtrl;
-
-	//9
-	QGridLayout* gridLayoutWidgetAnalyse = new QGridLayout(widgetAnalyse);
-	QTableView* tableViewCatalog = new QTableView(widgetAnalyse);
-	QTableView* tableViewDetails = new QTableView(widgetAnalyse);
-	QSqlTableModel *tableModelCatalog = new QSqlTableModel(widgetAnalyse, db);
-	QSqlQueryModel *queryModelDetails = new QSqlQueryModel(widgetAnalyse);
-	QCustomPlot* customPlotViewAnlyse = new QCustomPlot(widgetAnalyse);
-
-	MyWidget(QWidget *parent = 0) : QWidget(parent) { createMainUI(); }
-	void createMainUI()
-	{
-		if (initDevice() == false) { QMessageBox::information(this, "", "Fail to connect or open device");  QApplication::exit(); }
-		db.setDatabaseName("./../data/mysqlite.db");
-		if (!db.open()) { QMessageBox::information(this, "", "Fail to open database, details:\n" + db.lastError().text());  QApplication::exit();}
-
-		//0.
-		this->setWindowTitle("Laser Scan");
-		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
-		this->setMinimumSize(QSize(800, 600));
-		this->setFont(QFont("", 20, QFont::Thin));
-
-		//1
-		vboxLayoutWorkArea->addWidget(tabWidgetScanAnalyse);
-		tabWidgetScanAnalyse->addTab(widgetScan, "Scan");
-		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse");
-		widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
-
-		//2
-		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4);
-		gridLayoutWidgetScan->addWidget(groupBoxCurrentPose, 1, 0, 1, 1);
-		gridLayoutWidgetScan->addWidget(groupBoxPoseSetting, 1, 1, 1, 1);
-		gridLayoutWidgetScan->addWidget(groupBoxScanSetting, 1, 2, 1, 1);
-		gridLayoutWidgetScan->addWidget(groupBoxImplement, 1, 3, 1, 1);
-		gridLayoutWidgetScan->setColumnStretch(0, 2);
-		gridLayoutWidgetScan->setColumnStretch(1, 2);
-		gridLayoutWidgetScan->setColumnStretch(2, 2);
-		gridLayoutWidgetScan->setColumnStretch(3, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelXAxis, 0, 0, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelXmm, 0, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelYAxis, 1, 0, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(lineEditYAxis, 1, 1, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelYmm, 1, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelZAxis, 2, 0, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(lineEditZAxis, 2, 1, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelZmm, 2, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelRotate, 3, 0, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(labelRcc, 3, 2, 1, 1);
-		customPlotViewScan->addGraph();
-		lineEditXAxis->setEnabled(false);
-		lineEditYAxis->setEnabled(false);
-		lineEditZAxis->setEnabled(false);
-		lineEditRotate->setEnabled(false);
-
-		//4.
-		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonMoveLeft, 0, 1, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonMoveForward, 1, 0, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonMoveBackward, 1, 1, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonMoveUp, 2, 0, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
-		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
-
-		//5.
-		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
-		gridLayoutGroupBoxScanSetting->addWidget(labelDirection, 0, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(labelStartPoint, 1, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(spinBoxStartPoint, 1, 1, 1, 2);
-		gridLayoutGroupBoxScanSetting->addWidget(labelStartPointMM, 1, 3, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(labelEndPoint, 2, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(spinBoxEndPoint, 2, 1, 1, 2);
-		gridLayoutGroupBoxScanSetting->addWidget(labelEndPointMM, 2, 3, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(labelStep, 3, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2);
-		gridLayoutGroupBoxScanSetting->addWidget(labelStepMM, 3, 3, 1, 1);
-		spinBoxStartPoint->setMinimum(-100);
-		spinBoxEndPoint->setMinimum(-100);
-		comboBoxStep->addItem("1");
-		comboBoxStep->addItem("10");
-		radioButtonXAxis->setChecked(true);
-
-		//6.
-		gridLayoutGroupBoxImplement->addWidget(pushButtonReset, 0, 0, 1, 1);
-		gridLayoutGroupBoxImplement->addWidget(PushButtonStartup, 1, 0, 1, 1);
-		pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
-		PushButtonStartup->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
-
-		//7.
-		connect(pushButtonMoveRight, &QPushButton::clicked, this, &MyWidget::pushButtonMoveRight_clickded);
-		connect(pushButtonMoveLeft, &QPushButton::clicked, this, &MyWidget::pushButtonMoveLeft_clickded);
-		connect(pushButtonMoveForward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveForward_clickded);
-		connect(pushButtonMoveBackward, &QPushButton::clicked, this, &MyWidget::pushButtonMoveBackward_clickded);
-		connect(pushButtonMoveUp, &QPushButton::clicked, this, &MyWidget::pushButtonMoveUp_clickded);
-		connect(pushButtonMoveDown, &QPushButton::clicked, this, &MyWidget::pushButtonMoveDown_clickded);
-		connect(pushButtonRotateClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateClockwise_clickded);
-		connect(pushButtonRotateAntiClockwise, &QPushButton::clicked, this, &MyWidget::pushButtonRotateAntiClockwise_clickded);
-		connect(pushButtonReset, &QPushButton::clicked, this, &MyWidget::pushButtonReset_clickded);
-		connect(PushButtonStartup, &QPushButton::clicked, this, &MyWidget::PushButtonStartup_clickded);
-		connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout);
-		connect(customPlotViewScan, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewScan_mousePress);
-
-		
-		connect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
-		connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
-		connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
-		connect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
-		connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
-		connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
-		serialPortXYZR.setPort(listSerialPortInfo[1]);
-		serialPortXYZR.setBaudRate(460800);
-		serialPortXYZR.open(QIODevice::ReadWrite);
-		cout << endl << serialPortXYZR.portName().toStdString();
-
-		//8.
-		gridLayoutWidgetAnalyse->addWidget(tableViewCatalog, 0, 0);
-		gridLayoutWidgetAnalyse->addWidget(tableViewDetails, 0, 1);
-		gridLayoutWidgetAnalyse->addWidget(customPlotViewAnlyse, 1, 0, 1, 2);
-		gridLayoutWidgetAnalyse->setRowStretch(0, 2);
-		gridLayoutWidgetAnalyse->setRowStretch(1, 3);
-		gridLayoutWidgetAnalyse->setColumnStretch(0, 3);
-		gridLayoutWidgetAnalyse->setColumnStretch(1, 2);
-		customPlotViewAnlyse->addGraph();
-
-		tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
-		tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-		tableModelCatalog->setTable("tb_scan_catalog");
-		tableModelCatalog->sort(0, Qt::DescendingOrder);
-		tableModelCatalog->setEditStrategy(QSqlTableModel::OnManualSubmit);
-		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
-		tableViewCatalog->setModel(tableModelCatalog);
-
-		queryModelDetails->sort(0, Qt::DescendingOrder);
-		//queryModelDetails->setQuery("select timeid, scanid from tb_scan_details", db);
-		tableViewDetails->setModel(queryModelDetails);
-
-		connect(tableViewCatalog, &QTableView::clicked, this, &MyWidget::tableViewCatalog_clicked);
-		connect(tableViewDetails, &QTableView::clicked, this, &MyWidget::tableViewDetails_clicked);
-	}
 
 
-//Data analyse module
-public:
+
+public://Use sqlite
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
 	{
 		QSqlRecord record = tableModelCatalog->record(modelIndex.row());
