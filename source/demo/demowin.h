@@ -48,8 +48,7 @@ public://Create UI
 				QGridLayout *gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);//addin7
 				QRadioButton *radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
 				QRadioButton *radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
-				QSpinBox *spinBoxStartPoint = new QSpinBox(groupBoxScanSetting);
-				QSpinBox *spinBoxEndPoint = new QSpinBox(groupBoxScanSetting);
+				QSpinBox *spinBoxDistance = new QSpinBox(groupBoxScanSetting);
 				QComboBox *comboBoxStep = new QComboBox(groupBoxScanSetting);
 			QGroupBox *groupBoxImplement = new QGroupBox("Implement", widgetScan);
 				QGridLayout *gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);//addin8
@@ -160,12 +159,9 @@ public://Create UI
 		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Direction", groupBoxScanSetting), 0, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Start Point", groupBoxScanSetting), 1, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(spinBoxStartPoint, 1, 1, 1, 2); spinBoxStartPoint->setMinimum(-100);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 1, 3, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("End Point", groupBoxScanSetting), 2, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(spinBoxEndPoint, 2, 1, 1, 2); spinBoxEndPoint->setMinimum(-100);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 1, 1, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Distance", groupBoxScanSetting), 2, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(spinBoxDistance, 2, 1, 1, 2); spinBoxDistance->setMinimum(-100);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 2, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Step", groupBoxScanSetting), 3, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
@@ -520,7 +516,6 @@ public://Write serialport
 	{
 		CMDCODE cmdCode;
 		uchar motorId; // 0x0 or 0x1 or 0x2 or 0x3
-		int moveDirection; //-1 or 1
 		int moveDistance;//diy
 		int movePrecision;//diy
 	}PortParams;
@@ -535,7 +530,7 @@ public://Write serialport
 		//1.
 		if (pp.cmdCode == CMD_SJ_GODIST)
 		{	
-			*((int*)(data + 3)) = pp.moveDirection * pp.moveDistance * 1000000;
+			*((int*)(data + 3)) = pp.moveDistance * 1000000;
 			data[7] = pp.motorId;
 			*((int*)(data + 8)) = pp.movePrecision * 1000000;
 		}
@@ -559,22 +554,22 @@ public://Write serialport
 				self->serialPortCtrl.write((char*)data, 12);
 				if (self->serialPortCtrl.waitForBytesWritten(100)) break;
 				QTime t; t.start();//prevent blocking main thread event loop
-				while (t.elapsed()< 200)  QApplication::processEvents();
+				while (t.elapsed()< 200)  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 			}
 			if (pp.cmdCode == self->slaveCmdCode) break;
 			QTime t; t.start();//prevent blocking main thread event loop
-			while (t.elapsed()< 200)  QApplication::processEvents();
+			while (t.elapsed()< 200)  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 		}
 		if (k == 4) cout << endl << "Fail to send cmd( " << pp.cmdCode << ") to slave or receive slave cmd" << endl;
 	}
-	void pushButtonMoveRight_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x0, 1, 200, 5}; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveLeft_pressed() { PortParams pp = { CMD_SJ_GODIST,0x0, -1, 200, 5}; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveForward_pressed() { PortParams pp = { CMD_SJ_GODIST,0x1, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveBackward_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x1, -1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveUp_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, -1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveDown_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateAntiClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, -1, 200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveRight_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveLeft_pressed() { PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_pressed() { PortParams pp = { CMD_SJ_GODIST,0x1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 5}; writeSerialPortCtrl(pp, this); }
 
 	void pushButtonMoveRight_released() 
 	{
@@ -701,6 +696,7 @@ public://
 			clickSave = false;
 
 			//2.
+			pushButtonMoveRight_released();
 		}
 		else
 		{
@@ -713,20 +709,19 @@ public://
 			clickSave = true;
 
 			//2.
+			PortParams pp = { CMD_SJ_GODIST, radioButtonXAxis->isChecked() ? 0x0 : 0x1, spinBoxDistance->value(), 5 };
+			writeSerialPortCtrl(pp, this);
 
 			//3.
 			QSqlQuery query(db);
-			query.prepare("insert into tb_scan_catalog (timeid, direction, startpoint, endpoint, step) values (?, ?, ?, ?, ?)");
+			query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
 			query.addBindValue(timeid);
 			query.addBindValue(radioButtonXAxis->isChecked() ? "X" : "Y");
-			query.addBindValue(spinBoxStartPoint->value());
-			query.addBindValue(spinBoxEndPoint->value());
+			query.addBindValue(spinBoxDistance->value());
 			query.addBindValue(comboBoxStep->currentText().toInt());
 			query.exec();
 		}
 	}
-
-
 
 public://Use sqlite
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
