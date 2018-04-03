@@ -435,7 +435,7 @@ public://Init ethernet
 	}
 	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
 
-public://Read serialport
+public://Read serialportXYZR
 	queue<uchar> queueXYZR;
 	float realtimeX = FLT_MIN;
 	float realtimeY = FLT_MIN;
@@ -481,36 +481,69 @@ public://Read serialport
 	void serialPortXYZR_bytesWritten() {/*no use*/}
 	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
 
-	void serialPortCtrl_readyRead() {/*use syn mode*/ }
+public://Read serialportCtrl
+	queue<uchar> queueCtrl;
+	CMDCODE slaveCmdCode = CMD_INVALID;
+	void serialPortCtrl_readyRead() 
+	{
+		//1.
+		QByteArray cmd = serialPortCtrl.readAll();
+		for (int i = 0; i < cmd.size(); ++i) queueCtrl.push((uchar)cmd[i]);
+
+		//2.
+		while (queueCtrl.size() >= 12 && queueCtrl.front() != 0x53) queueCtrl.pop();
+
+		//3.
+		if (queueCtrl.size() < 12) return;
+
+		//4.
+		uchar data[10], sumCalc = (uchar)0;
+		queueCtrl.pop();
+		for (int i = 0; i < 10; ++i)
+		{
+			data[i] = queueCtrl.front();
+			queueCtrl.pop();
+			sumCalc += data[i];
+		}
+		uchar sumTrue = queueCtrl.front();
+		queueCtrl.pop();
+
+		//5.
+		if (sumCalc != sumTrue) slaveCmdCode = CMD_INVALID;
+		else slaveCmdCode = (CMDCODE)data[0];
+	}
 	void serialPortCtrl_bytesWritten() {/*use syn mode*/}
 	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
 	
 public://Write serialport
 	typedef struct PortParams
 	{
+		CMDCODE cmdCode;
 		uchar motorId; // 0x0 or 0x1 or 0x2 or 0x3
 		int moveDirection; //-1 or 1
+		int moveDistance;//diy
+		int movePrecision;//diy
 	}PortParams;
-	void writeSerialPortCtrl(CMDCODE cmdCode, PortParams pp)
+	static void writeSerialPortCtrl(PortParams pp, MyWidget *self)
 	{
 		//0.
 		uchar data[12];
 		data[0] = 0x53;
-		data[10] = cmdCode;
+		data[10] = pp.cmdCode;
 		data[11] = 0x0;
 
 		//1.
-		if (cmdCode == CMD_SJ_GODIST)
+		if (pp.cmdCode == CMD_SJ_GODIST)
 		{	
-			*((int*)(data + 3)) = pp.moveDirection * 200 * 1000000;
+			*((int*)(data + 3)) = pp.moveDirection * pp.moveDistance * 1000000;
 			data[7] = pp.motorId;
-			*((int*)(data + 8)) = 5 * 1000000;
+			*((int*)(data + 8)) = pp.movePrecision * 1000000;
 		}
-		else if (cmdCode == CMD_SJ_GO_STOP)
+		else if (pp.cmdCode == CMD_SJ_GO_STOP)
 		{
 			data[2] = pp.motorId;
 		}
-		else if (cmdCode == CMD_DEVRST)
+		else if (pp.cmdCode == CMD_DEVRST)
 		{
 		}
 
@@ -518,45 +551,48 @@ public://Write serialport
 		for (int i = 1; i < 11; ++i) data[11] += data[i];
 
 		//4.
-		for (int i = 0; i < 3; ++i)
+		int k;
+		for (k = 0; k < 3; ++k)
 		{
-			serialPortCtrl.write((char*)data, 12);
-			if (serialPortCtrl.waitForBytesWritten(100)) break;
+			for (int i = 0; i < 3; ++i)
+			{
+				self->serialPortCtrl.write((char*)data, 12);
+				if (self->serialPortCtrl.waitForBytesWritten(100)) break;
+				QTime t; t.start();//prevent blocking main thread event loop
+				while (t.elapsed()< 200)  QApplication::processEvents();
+			}
+			if (pp.cmdCode == self->slaveCmdCode) break;
+			QTime t; t.start();//prevent blocking main thread event loop
+			while (t.elapsed()< 200)  QApplication::processEvents();
 		}
+		if (k == 4) cout << endl << "Fail to send cmd( " << pp.cmdCode << ") to slave or receive slave cmd" << endl;
 	}
-	void pushButtonMoveRight_pressed() { PortParams pp; pp.motorId = 0x0; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonMoveLeft_pressed() { PortParams pp; pp.motorId = 0x0; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonMoveForward_pressed() { PortParams pp; pp.motorId = 0x1; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonMoveBackward_pressed() { PortParams pp; pp.motorId = 0x1; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonMoveUp_pressed() { PortParams pp; pp.motorId = 0x2; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonMoveDown_pressed() { PortParams pp; pp.motorId = 0x2; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonRotateClockwise_pressed() { PortParams pp; pp.motorId = 0x3; pp.moveDirection = 1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
-	void pushButtonRotateAntiClockwise_pressed() { PortParams pp; pp.motorId = 0x3; pp.moveDirection = -1; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonMoveRight_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x0, 1, 200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveLeft_pressed() { PortParams pp = { CMD_SJ_GODIST,0x0, -1, 200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_pressed() { PortParams pp = { CMD_SJ_GODIST,0x1, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x1, -1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, -1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, 1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, -1, 200, 5}; writeSerialPortCtrl(pp, this); }
 
 	void pushButtonMoveRight_released() 
 	{
 		//0.
-		PortParams pp;
-		pp.motorId = 0x0;
-		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+		PortParams pp = { CMD_SJ_GO_STOP, 0x0};
+		writeSerialPortCtrl(pp, this);
 
 		//1.
-		QTime t1; t1.start();
-		while (t1.elapsed()< 200)  QApplication::processEvents();
 		pp.motorId = 0x1;
-		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+		writeSerialPortCtrl(pp, this);
 
 		//2.
-		QTime t2; t2.start();
-		while (t2.elapsed()< 200)  QApplication::processEvents();
 		pp.motorId = 0x2;
-		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+		writeSerialPortCtrl(pp, this);
 
 		//3.
-		QTime t3; t3.start();
-		while (t3.elapsed()< 200)  QApplication::processEvents();
 		pp.motorId = 0x3;
-		writeSerialPortCtrl(CMD_SJ_GO_STOP, pp);
+		writeSerialPortCtrl(pp, this);
 	}
 	void pushButtonMoveLeft_released() { pushButtonMoveRight_released(); }
 	void pushButtonMoveForward_released() { pushButtonMoveRight_released(); }
@@ -566,7 +602,7 @@ public://Write serialport
 	void pushButtonRotateClockwise_released() { pushButtonMoveRight_released(); }
 	void pushButtonRotateAntiClockwise_released() { pushButtonMoveRight_released(); }
 	
-	void pushButtonReset_clicked() { PortParams pp; writeSerialPortCtrl(CMD_SJ_GODIST, pp); }
+	void pushButtonReset_clicked() { PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
 public://
 	long timeid = -1;
 	long scanid = -1;
