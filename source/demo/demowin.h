@@ -103,11 +103,11 @@ public://Create UI
 		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenCtrlPort, 0, 6, 1, 1);
 		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenEthernet, 0, 8, 1, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(0, 0);
-		gridLayoutGroupBoxPortSetting->setColumnStretch(1, 2);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(1, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(2, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(3, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(4, 0);
-		gridLayoutGroupBoxPortSetting->setColumnStretch(5, 2);
+		gridLayoutGroupBoxPortSetting->setColumnStretch(5, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(6, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(7, 1);
 		gridLayoutGroupBoxPortSetting->setColumnStretch(8, 1);
@@ -215,7 +215,7 @@ public://Init serialport
 		else
 		{
 			serialPortXYZR.setPort(QSerialPortInfo(comboBoxDataPort->currentText()));
-			serialPortXYZR.setBaudRate(460800);
+			serialPortXYZR.setBaudRate(115200);
 			if (serialPortXYZR.open(QIODevice::ReadWrite))
 			{
 				pushButtonOpenDataPort->setText("Close");
@@ -239,7 +239,7 @@ public://Init serialport
 		else
 		{
 			serialPortCtrl.setPort(QSerialPortInfo(comboBoxCtrlPort->currentText()));
-			serialPortCtrl.setBaudRate(460800);
+			serialPortCtrl.setBaudRate(115200);
 			if (serialPortCtrl.open(QIODevice::ReadWrite))
 			{
 				pushButtonOpenCtrlPort->setText("Close");
@@ -415,19 +415,12 @@ public://Init ethernet
 		{
 			if (initDevice()) 
 			{ 
-				pushButtonOpenEthernet->setText("Close");
+				pushButtonOpenEthernet->setText("Exit Application");
 				connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout); 
 			}
 			else QMessageBox::information(this, "", "Fail to connect or open device"); 
 		}
-		else
-		{
-			delete m_pLLT;
-			m_tscanCONTROLType = TScannerType::StandardType;
-			m_uiResolution = 0;
-			pushButtonOpenEthernet->setText("Open");
-			disconnect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout);
-		}
+		else QApplication::exit();
 	}
 	void timerContinousScan_timeout() { GetAndSaveAndShowProfiles(); }
 
@@ -515,24 +508,26 @@ public://Write serialport
 	typedef struct PortParams
 	{
 		CMDCODE cmdCode;
-		uchar motorId; // 0x0 or 0x1 or 0x2 or 0x3
+		int motorId; // 0x0 or 0x1 or 0x2 or 0x3
 		int moveDistance;//diy
 		int movePrecision;//diy
 	}PortParams;
 	static void writeSerialPortCtrl(PortParams pp, MyWidget *self)
 	{
 		//0.
+		static int cmdid = 0;
 		uchar data[12];
 		data[0] = 0x53;
-		data[10] = pp.cmdCode;
+		data[1] = pp.cmdCode;
+		data[10] = ++cmdid;
 		data[11] = 0x0;
 
 		//1.
 		if (pp.cmdCode == CMD_SJ_GODIST)
 		{	
+			data[2] = pp.motorId;
 			*((int*)(data + 3)) = pp.moveDistance * 1000000;
-			data[7] = pp.motorId;
-			*((int*)(data + 8)) = pp.movePrecision * 1000000;
+			*((short*)(data + 8)) = pp.movePrecision * 1000000;
 		}
 		else if (pp.cmdCode == CMD_SJ_GO_STOP)
 		{
@@ -546,58 +541,41 @@ public://Write serialport
 		for (int i = 1; i < 11; ++i) data[11] += data[i];
 
 		//4.
-		int k;
-		for (k = 0; k < 3; ++k)
-		{
-			for (int i = 0; i < 3; ++i)
-			{
-				self->serialPortCtrl.write((char*)data, 12);
-				if (self->serialPortCtrl.waitForBytesWritten(100)) break;
-				QTime t; t.start();//prevent blocking main thread event loop
-				while (t.elapsed()< 200)  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-			}
-			if (pp.cmdCode == self->slaveCmdCode) break;
-			QTime t; t.start();//prevent blocking main thread event loop
-			while (t.elapsed()< 200)  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+		self->serialPortCtrl.write((char*)data, 12);
+		bool send = self->serialPortCtrl.waitForBytesWritten(100);
+
+		//5.
+		bool receive = false;
+		QTime t; t.start();
+		while (t.elapsed() < 2000)
+		{	
+			QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+			if (pp.cmdCode == self->slaveCmdCode) { self->slaveCmdCode = CMD_INVALID; receive = true; break; }
 		}
-		if (k == 4) cout << endl << "Fail to send cmd( " << pp.cmdCode << ") to slave or receive slave cmd" << endl;
+
+		//6.
+		string tips = "id=" + aaa::num2string(cmdid) + " send=" + (send ? "1" : "0") +" receive=" + (receive ? "1" : "0");
+		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("Laser Scan") : self->windowTitle()) + "     " + tips.c_str());
 	}
-	void pushButtonMoveRight_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5}; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveLeft_pressed() { PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5}; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveForward_pressed() { PortParams pp = { CMD_SJ_GODIST,0x1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveBackward_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveUp_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveDown_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateAntiClockwise_pressed() { PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 5}; writeSerialPortCtrl(pp, this); }
 
-	void pushButtonMoveRight_released() 
-	{
-		//0.
-		PortParams pp = { CMD_SJ_GO_STOP, 0x0};
-		writeSerialPortCtrl(pp, this);
-
-		//1.
-		pp.motorId = 0x1;
-		writeSerialPortCtrl(pp, this);
-
-		//2.
-		pp.motorId = 0x2;
-		writeSerialPortCtrl(pp, this);
-
-		//3.
-		pp.motorId = 0x3;
-		writeSerialPortCtrl(pp, this);
-	}
-	void pushButtonMoveLeft_released() { pushButtonMoveRight_released(); }
-	void pushButtonMoveForward_released() { pushButtonMoveRight_released(); }
-	void pushButtonMoveBackward_released() { pushButtonMoveRight_released(); }
-	void pushButtonMoveUp_released() { pushButtonMoveRight_released(); }
-	void pushButtonMoveDown_released() { pushButtonMoveRight_released(); }
-	void pushButtonRotateClockwise_released() { pushButtonMoveRight_released(); }
-	void pushButtonRotateAntiClockwise_released() { pushButtonMoveRight_released(); }
+	void pushButtonMoveRight_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0}; writeSerialPortCtrl(pp, this);}
+	void pushButtonMoveLeft_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x1 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x1 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x2 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x2 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x3 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x3 }; writeSerialPortCtrl(pp, this); }
 	
-	void pushButtonReset_clicked() { PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
+	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
 public://
 	long timeid = -1;
 	long scanid = -1;
@@ -649,8 +627,8 @@ public://
 			lasttimeX = realtimeX;
 			lasttimeY = realtimeY;
 			clickSave = false;
-			static int n = 0;
-			this->setStatusTip(QString("saved: ") + aaa::num2string(++n).c_str());
+			string tips = string("saved=") + aaa::num2string(scanid).c_str();
+			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("Laser Scan") : this->windowTitle()) + "     " + tips.c_str());
 		}
 
 		//4.Show profiles
@@ -685,6 +663,8 @@ public://
 
 	void PushButtonStartup_clickded()
 	{
+		if (!serialPortCtrl.isOpen()) return;
+		if (!m_pLLT) return;
 		if (timerContinousScan->isActive())
 		{
 			//1.
@@ -696,7 +676,8 @@ public://
 			clickSave = false;
 
 			//2.
-			pushButtonMoveRight_released();
+			PortParams pp = { CMD_SJ_GO_STOP, radioButtonXAxis->isChecked() ? 0x0 : 0x1 };
+			writeSerialPortCtrl(pp, this);
 		}
 		else
 		{
