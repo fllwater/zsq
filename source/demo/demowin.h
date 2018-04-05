@@ -46,8 +46,8 @@ public://Create UI
 				QPushButton *pushButtonRotateAntiClockwise = new QPushButton("Move AntiClockwise", groupBoxPoseSetting);
 			QGroupBox *groupBoxScanSetting = new QGroupBox("Scan Setting", widgetScan);
 				QGridLayout *gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);//addin7
-				QRadioButton *radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting);
-				QRadioButton *radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting);
+				QRadioButton *radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting); QPushButton *pushButtonReserve1 = new QPushButton("Start", groupBoxScanSetting);
+				QRadioButton *radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting); QPushButton *pushButtonReserve2 = new QPushButton("Start", groupBoxScanSetting);
 				QSpinBox *spinBoxDistance = new QSpinBox(groupBoxScanSetting);
 				QComboBox *comboBoxStep = new QComboBox(groupBoxScanSetting);
 			QGroupBox *groupBoxImplement = new QGroupBox("Implement", widgetScan);
@@ -158,14 +158,16 @@ public://Create UI
 		//addin7
 		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Direction", groupBoxScanSetting), 0, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 1, 1, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve1, 0, 2, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 1, 1, 1, 1); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve2, 1, 2, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Distance", groupBoxScanSetting), 2, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(spinBoxDistance, 2, 1, 1, 2); spinBoxDistance->setMinimum(-100);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 2, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Step", groupBoxScanSetting), 3, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 3, 3, 1, 1);
+		connect(pushButtonReserve1, &QPushButton::clicked, this, &MyWidget::pushButtonReserve1_clicked);
+		connect(pushButtonReserve2, &QPushButton::clicked, this, &MyWidget::pushButtonReserve2_clicked);
 
 		//addin8
 		gridLayoutGroupBoxImplement->addWidget(pushButtonReset, 0, 0, 1, 1); pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
@@ -536,6 +538,10 @@ public://Write serialport
 		else if (pp.cmdCode == CMD_DEVRST)
 		{
 		}
+		else if (pp.cmdCode == CMD_SJ_REPEAT_GO)
+		{
+			data[2] = pp.motorId;//0x0--start   0x1---stop
+		}
 
 		//3.
 		for (int i = 1; i < 11; ++i) data[11] += data[i];
@@ -576,6 +582,9 @@ public://Write serialport
 	void pushButtonRotateAntiClockwise_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x3 }; writeSerialPortCtrl(pp, this); }
 	
 	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
+
+	void pushButtonReserve1_clicked() { bool bl = pushButtonReserve1->text() == "Start"; PortParams pp = { CMD_SJ_REPEAT_GO, bl? 0x1 : 0x0}; writeSerialPortCtrl(pp, this); pushButtonReserve1->setText(bl ? "Stop" : "Start");}
+	void pushButtonReserve2_clicked() {}
 public://
 	long timeid = -1;
 	long scanid = -1;
