@@ -164,13 +164,13 @@ public://Create UI
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true); 
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1); 
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描速度", groupBoxScanSetting), 1, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(doubleSpinBoxSpeed, 1, 1, 1, 1); doubleSpinBoxSpeed->setMaximum(1.0); doubleSpinBoxSpeed->setSingleStep(0.1); doubleSpinBoxSpeed->setValue(0.40);
+		gridLayoutGroupBoxScanSetting->addWidget(doubleSpinBoxSpeed, 1, 1, 1, 1); doubleSpinBoxSpeed->setMinimum(1.0); doubleSpinBoxSpeed->setMaximum(5.0); doubleSpinBoxSpeed->setValue(3.0);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米/秒", groupBoxScanSetting), 1, 2, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描长度", groupBoxScanSetting), 2, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(spinBoxDistance, 2, 1, 1, 2); spinBoxDistance->setMinimum(-100);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 2, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描步长", groupBoxScanSetting), 3, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
+		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "2" << "5" << "10");
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 3, 3, 1, 1);
 
 		//addin8
@@ -476,7 +476,7 @@ public://Read serialportXYZR
 		realtimeX = ((int*)(data + 1))[0] / 1000000.f;
 		realtimeY = ((int*)(data + 1))[1] / 1000000.f;
 		realtimeZ = ((int*)(data + 1))[2] / 1000000.f;
-		realtimeR = ((int*)(data + 1))[3] / 1000000.f;
+		realtimeR = ((int*)(data + 1))[3] / 1000.f;
 		lineEditXAxis->setText(aaa::num2string(realtimeX, 3).c_str());
 		lineEditYAxis->setText(aaa::num2string(realtimeY, 3).c_str());
 		lineEditZAxis->setText(aaa::num2string(realtimeZ, 3).c_str());
@@ -577,14 +577,14 @@ public://Write serialport
 		string tips = "id=" + aaa::num2string(cmdid) + " send=" + (send ? "1" : "0") +" receive=" + (receive ? "1" : "0");
 		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("断面扫描系统") : self->windowTitle()) + "     " + tips.c_str());
 	}
-	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveForward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x1, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveBackward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveUp_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveDown_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateAntiClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x1, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, -2, 0.06 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, 2, 0.06 }; writeSerialPortCtrl(pp, this); }
 
 	void pushButtonMoveRight_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0}; writeSerialPortCtrl(pp, this);}
 	void pushButtonMoveLeft_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0 }; writeSerialPortCtrl(pp, this); }
@@ -595,7 +595,7 @@ public://Write serialport
 	void pushButtonRotateClockwise_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x3 }; writeSerialPortCtrl(pp, this); }
 	void pushButtonRotateAntiClockwise_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x3 }; writeSerialPortCtrl(pp, this); }
 	
-	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
+	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_DEVRST }; writeSerialPortCtrl(pp, this); }
 
 public://
 	long timeid = -1;
@@ -654,7 +654,7 @@ public://
 
 		//4.Stop scan
 		if ((enableSave && radioButtonXAxis->isChecked() && __abs(realtimeX - initialX) > spinBoxDistance->value()) ||
-			(enableSave && radioButtonYAxis->isChecked() && __abs(realtimeY - initialY) > spinBoxDistance->value())) startOrStopScan(true);	
+			(enableSave && radioButtonYAxis->isChecked() && __abs(realtimeY - initialY) > spinBoxDistance->value())) startOrStopScan(true);
 
 		//5.Show profiles
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
