@@ -79,7 +79,8 @@ public://Create UI
 
 		//addin2
 		tabWidgetScanAnalyse->addTab(widgetScan, "断面扫描");
-		tabWidgetScanAnalyse->addTab(widgetAnalyse, "历史记录"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
+		tabWidgetScanAnalyse->addTab(widgetAnalyse, "历史记录"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin)); 
+		connect(tabWidgetScanAnalyse, &QTabWidget::tabBarClicked, this, &MyWidget::tabWidgetScanAnalyse_mousePress);
 
 		//addin3
 		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4); customPlotViewScan->setInteractions(QCP::iRangeZoom | QCP::iSelectPlottables); customPlotViewScan->addGraph();
@@ -638,9 +639,10 @@ public://
 			clickSave)
 		{
 			QSqlQuery query(db);
-			query.prepare("insert into tb_scan_details (timeid, scanid, xdata, zdata) values (?, ?, ?, ?)");
+			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, xdata, zdata) values (?, ?, ?, ?, ?)");
 			query.addBindValue(timeid);
 			query.addBindValue(scanid++);
+			query.addBindValue(radioButtonXAxis->isChecked() ? realtimeX : realtimeY);
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
 			query.exec();
@@ -653,8 +655,8 @@ public://
 		}
 
 		//4.Stop scan
-		if ((enableSave && radioButtonXAxis->isChecked() && __abs(realtimeX - initialX) > spinBoxDistance->value()) ||
-			(enableSave && radioButtonYAxis->isChecked() && __abs(realtimeY - initialY) > spinBoxDistance->value())) startOrStopScan(true);
+		if ((enableSave && radioButtonXAxis->isChecked() && __abs(realtimeX - initialX) > __abs(spinBoxDistance->value())) ||
+			(enableSave && radioButtonYAxis->isChecked() && __abs(realtimeY - initialY) > __abs(spinBoxDistance->value()))) startOrStopScan(true);
 
 		//5.Show profiles
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
@@ -739,6 +741,7 @@ public:
 	}
 
 public://Use sqlite
+	void tabWidgetScanAnalyse_mousePress(int index) { if (index == 1) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; } }
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
 	{
 		QSqlRecord record = tableModelCatalog->record(modelIndex.row());
@@ -746,16 +749,17 @@ public://Use sqlite
 
 		tableViewDetails->hideColumn(0);
 		queryModelDetails->setHeaderData(1, Qt::Horizontal, "扫描序号");
-		tableViewDetails->hideColumn(2);
+		queryModelDetails->setHeaderData(2, Qt::Horizontal, "扫描位置");
 		tableViewDetails->hideColumn(3);
+		tableViewDetails->hideColumn(4);
 	}
 	void tableViewDetails_clicked(QModelIndex modelIndex)
 	{
 		QSqlRecord record = queryModelDetails->record(modelIndex.row());
-		vector<double> vdValueX(record.value(2).toByteArray().size() / sizeof(double));
-		vector<double> vdValueZ(record.value(3).toByteArray().size() / sizeof(double));
-		memcpy(&vdValueX[0], record.value(2).toByteArray().data(), record.value(2).toByteArray().size());
-		memcpy(&vdValueZ[0], record.value(3).toByteArray().data(), record.value(3).toByteArray().size());
+		vector<double> vdValueX(record.value(3).toByteArray().size() / sizeof(double));
+		vector<double> vdValueZ(record.value(4).toByteArray().size() / sizeof(double));
+		memcpy(&vdValueX[0], record.value(3).toByteArray().data(), record.value(3).toByteArray().size());
+		memcpy(&vdValueZ[0], record.value(4).toByteArray().data(), record.value(4).toByteArray().size());
 
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
 		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
