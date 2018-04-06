@@ -121,6 +121,7 @@ file(GLOB incvslam LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/include/vslam/*)
 file(GLOB incwindow LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/include/window/*)
 file(GLOB srcdir LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/*)
 file(GLOB srcdemo LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/demo/*)
+file(GLOB srceemo LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/eemo/*)
 source_group("data" FILES ${datdir})
 source_group("include" FILES ${incdir})
 source_group("include\\base" FILES ${incbase})
@@ -130,11 +131,12 @@ source_group("include\\vslam" FILES ${incvslam})
 source_group("include\\window" FILES ${incwindow})
 source_group("source" FILES ${srcdir})
 source_group("source\\demo" FILES ${srcdemo})
+source_group("source\\eaute" FILES ${srceemo})
 add_executable(${PROJECT_NAME} 
 ${cmkdir} 
 ${datdir} 
 ${incdir} ${incbase} ${inccalib} ${incmarker} ${incstereo} ${incvslam} ${incwindow}
-${srcdir} ${srcdemo}
+${srcdir} ${srcdemo} ${srceemo}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME} ${ALL_LIBS})
@@ -265,7 +267,9 @@ ${PCL_LIBRARIES}
 list(REMOVE_ITEM ALL_LIBS "vtkproj4")
 message("ALL_LIBS: ${ALL_LIBS}")
 ###UbuFiles######################################################################
-add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
+file(GLOB_RECURSE datadir ${CMAKE_CURRENT_SOURCE_DIR}/data/*)
+file(GLOB_RECURSE sourcedir ${CMAKE_CURRENT_SOURCE_DIR}/source/*)
+add_executable(${PROJECT_NAME} ${datadir} ${sourcedir})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME} ${ALL_LIBS})
 endif(UNIX AND (${PROJECT_NAME} STREQUAL "aro"))

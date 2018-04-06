@@ -47,8 +47,9 @@ public://Create UI
 				QPushButton *pushButtonRotateAntiClockwise = new QPushButton("逆旋转", groupBoxPoseSetting);
 			QGroupBox *groupBoxScanSetting = new QGroupBox("扫描设置", widgetScan);
 				QGridLayout *gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);//addin7
-				QRadioButton *radioButtonXAxis = new QRadioButton("X轴", groupBoxScanSetting); QPushButton *pushButtonReserve1 = new QPushButton("开始", groupBoxScanSetting);
-				QRadioButton *radioButtonYAxis = new QRadioButton("Y轴", groupBoxScanSetting); QPushButton *pushButtonReserve2 = new QPushButton("开始", groupBoxScanSetting);
+				QRadioButton *radioButtonXAxis = new QRadioButton("X轴", groupBoxScanSetting);
+				QRadioButton *radioButtonYAxis = new QRadioButton("Y轴", groupBoxScanSetting);
+				QDoubleSpinBox *doubleSpinBoxSpeed = new QDoubleSpinBox(groupBoxScanSetting);
 				QSpinBox *spinBoxDistance = new QSpinBox(groupBoxScanSetting);
 				QComboBox *comboBoxStep = new QComboBox(groupBoxScanSetting);
 			QGroupBox *groupBoxImplement = new QGroupBox("执行扫描", widgetScan);
@@ -60,6 +61,7 @@ public://Create UI
 			QTableView *tableViewCatalog = new QTableView(widgetAnalyse);
 			QTableView *tableViewDetails = new QTableView(widgetAnalyse);
 			QCustomPlot *customPlotViewAnlyse = new QCustomPlot(widgetAnalyse);
+			QCPTextElement *cpTextElementXY = new QCPTextElement(customPlotViewAnlyse, "(-1.000,  -1.000)", QFont("", 15, QFont::Thin));
 			QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");//addin10
 			QSqlTableModel *tableModelCatalog = new QSqlTableModel(widgetAnalyse, db);
 			QSqlQueryModel *queryModelDetails = new QSqlQueryModel(widgetAnalyse);		
@@ -77,10 +79,10 @@ public://Create UI
 
 		//addin2
 		tabWidgetScanAnalyse->addTab(widgetScan, "断面扫描");
-		tabWidgetScanAnalyse->addTab(widgetAnalyse, "数据分析"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
+		tabWidgetScanAnalyse->addTab(widgetAnalyse, "历史记录"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
 
 		//addin3
-		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4); customPlotViewScan->addGraph();
+		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4); customPlotViewScan->setInteractions(QCP::iRangeZoom | QCP::iSelectPlottables); customPlotViewScan->addGraph();
 		gridLayoutWidgetScan->addWidget(groupBoxPortSetting, 1, 0, 1, 4);
 		gridLayoutWidgetScan->addWidget(groupBoxCurrentPose, 2, 0, 1, 1);
 		gridLayoutWidgetScan->addWidget(groupBoxPoseSetting, 2, 1, 1, 1);
@@ -159,16 +161,17 @@ public://Create UI
 		//addin7
 		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描轴", groupBoxScanSetting), 0, 0, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve1, 0, 2, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 1, 1, 1, 1); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve2, 1, 2, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true); 
+		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 0, 2, 1, 1); 
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描速度", groupBoxScanSetting), 1, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(doubleSpinBoxSpeed, 1, 1, 1, 1); doubleSpinBoxSpeed->setMaximum(1.0); doubleSpinBoxSpeed->setSingleStep(0.1); doubleSpinBoxSpeed->setValue(0.40);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米/秒", groupBoxScanSetting), 1, 2, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描长度", groupBoxScanSetting), 2, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(spinBoxDistance, 2, 1, 1, 2); spinBoxDistance->setMinimum(-100);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 2, 3, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描步长", groupBoxScanSetting), 3, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
 		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 3, 3, 1, 1);
-		connect(pushButtonReserve1, &QPushButton::clicked, this, &MyWidget::pushButtonReserve1_clicked);
-		connect(pushButtonReserve2, &QPushButton::clicked, this, &MyWidget::pushButtonReserve2_clicked);
 
 		//addin8
 		gridLayoutGroupBoxImplement->addWidget(pushButtonReset, 0, 0, 1, 1); pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
@@ -179,13 +182,18 @@ public://Create UI
 		//addin9
 		gridLayoutWidgetAnalyse->addWidget(tableViewCatalog, 0, 0); tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
 		gridLayoutWidgetAnalyse->addWidget(tableViewDetails, 0, 1); tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
-		gridLayoutWidgetAnalyse->addWidget(customPlotViewAnlyse, 1, 0, 1, 2); customPlotViewAnlyse->addGraph();
+		gridLayoutWidgetAnalyse->addWidget(customPlotViewAnlyse, 1, 0, 1, 2); customPlotViewAnlyse->setInteractions(QCP::iRangeZoom | QCP::iSelectPlottables);
+		customPlotViewAnlyse->addGraph(); 
+		customPlotViewAnlyse->plotLayout()->insertRow(0); 
+		customPlotViewAnlyse->plotLayout()->addElement(0, 0, cpTextElementXY);
+
 		gridLayoutWidgetAnalyse->setRowStretch(0, 2);
 		gridLayoutWidgetAnalyse->setRowStretch(1, 3);
 		gridLayoutWidgetAnalyse->setColumnStretch(0, 3);
 		gridLayoutWidgetAnalyse->setColumnStretch(1, 2);
 		connect(tableViewCatalog, &QTableView::clicked, this, &MyWidget::tableViewCatalog_clicked);
 		connect(tableViewDetails, &QTableView::clicked, this, &MyWidget::tableViewDetails_clicked);
+		connect(customPlotViewAnlyse, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewAnlyse_mousePress);
 
 		//addin10
 		db.setDatabaseName("./../data/mysqlite.db");
@@ -517,7 +525,7 @@ public://Write serialport
 		CMDCODE cmdCode;
 		int motorId; // 0x0 or 0x1 or 0x2 or 0x3
 		int moveDistance;//diy
-		int movePrecision;//diy
+		double moveSpeed;//diy
 	}PortParams;
 	static void writeSerialPortCtrl(PortParams pp, MyWidget *self)
 	{
@@ -534,7 +542,8 @@ public://Write serialport
 		{	
 			data[2] = pp.motorId;
 			*((int*)(data + 3)) = pp.moveDistance * 1000000;
-			*((short*)(data + 8)) = pp.movePrecision * 1000000;
+			*((short*)(data + 7)) = 0x1;
+			*((short*)(data + 8)) = (short)(pp.moveSpeed * 1000);
 		}
 		else if (pp.cmdCode == CMD_SJ_GO_STOP)
 		{
@@ -568,14 +577,14 @@ public://Write serialport
 		string tips = "id=" + aaa::num2string(cmdid) + " send=" + (send ? "1" : "0") +" receive=" + (receive ? "1" : "0");
 		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("断面扫描系统") : self->windowTitle()) + "     " + tips.c_str());
 	}
-	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5}; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveForward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x1, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveBackward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveUp_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonMoveDown_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 5 }; writeSerialPortCtrl(pp, this); }
-	void pushButtonRotateAntiClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 5}; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveForward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x1, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveBackward_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x1, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveUp_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonMoveDown_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x2, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, 200, 0.5 }; writeSerialPortCtrl(pp, this); }
+	void pushButtonRotateAntiClockwise_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x3, -200, 0.5 }; writeSerialPortCtrl(pp, this); }
 
 	void pushButtonMoveRight_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0}; writeSerialPortCtrl(pp, this);}
 	void pushButtonMoveLeft_released() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GO_STOP, 0x0 }; writeSerialPortCtrl(pp, this); }
@@ -588,17 +597,15 @@ public://Write serialport
 	
 	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
 
-	void pushButtonReserve1_clicked() { bool bl = pushButtonReserve1->text() == "开始"; PortParams pp = { CMD_SJ_REPEAT_GO, bl? 0x1 : 0x0}; writeSerialPortCtrl(pp, this); pushButtonReserve1->setText(bl ? "停止" : "开始");}
-	void pushButtonReserve2_clicked() {}
 public://
 	long timeid = -1;
 	long scanid = -1;
-	float lasttimeX = FLT_MAX;
-	float lasttimeY = FLT_MAX;
-	float lasttimeZ = FLT_MAX;
-	float lasttimeR = FLT_MAX;
 	bool enableSave = false;
 	bool clickSave = false;
+	float lasttimeX, initialX;
+	float lasttimeY, initialY;
+	float lasttimeZ, initialZ;
+	float lasttimeR, initialR;
 	void GetAndSaveAndShowProfiles()
 	{
 		int iRetValue = 0;//buffer
@@ -626,8 +633,8 @@ public://
 		//else cout << endl << "2.Convert profiles: OK";
 
 		//3.Save profiles
-		if((enableSave && radioButtonXAxis->isChecked() && lasttimeX - realtimeX > comboBoxStep->currentText().toInt()) ||
-			(enableSave && radioButtonYAxis->isChecked() && lasttimeY - realtimeY > comboBoxStep->currentText().toInt()) || 
+		if((enableSave && radioButtonXAxis->isChecked() && __abs(lasttimeX - realtimeX) > comboBoxStep->currentText().toInt()) ||
+			(enableSave && radioButtonYAxis->isChecked() && __abs(lasttimeY - realtimeY) > comboBoxStep->currentText().toInt()) ||
 			clickSave)
 		{
 			QSqlQuery query(db);
@@ -645,7 +652,11 @@ public://
 			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("断面扫描系统") : this->windowTitle()) + "     " + tips.c_str());
 		}
 
-		//4.Show profiles
+		//4.Stop scan
+		if ((enableSave && radioButtonXAxis->isChecked() && __abs(realtimeX - initialX) > spinBoxDistance->value()) ||
+			(enableSave && radioButtonYAxis->isChecked() && __abs(realtimeY - initialY) > spinBoxDistance->value())) startOrStopScan(true);	
+
+		//5.Show profiles
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
 		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
 		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
@@ -673,13 +684,12 @@ public://
 		pushButtonReset->setEnabled(enable);
 		PushButtonStartup->setText(enable ? "启动" : "终止");
 	}
-	void customPlotViewScan_mousePress(QMouseEvent *event) { clickSave = true; }
+	void customPlotViewScan_mousePress(QMouseEvent *event) { /*clickSave = true;*/ }
 
-	void PushButtonStartup_clickded()
+public:
+	void startOrStopScan(bool stop)
 	{
-		if (!serialPortCtrl.isOpen()) return;
-		if (!m_pLLT) return;
-		if (timerContinousScan->isActive())
+		if (stop)
 		{
 			//1.
 			timerContinousScan->stop();
@@ -702,9 +712,13 @@ public://
 			scanid = 0;
 			enableSave = true;
 			clickSave = true;
+			lasttimeX = initialX = realtimeX;
+			lasttimeY = initialY = realtimeY;
+			lasttimeZ = initialZ = realtimeZ;
+			lasttimeR = initialR = realtimeR;
 
 			//2.
-			PortParams pp = { CMD_SJ_GODIST, radioButtonXAxis->isChecked() ? 0x0 : 0x1, spinBoxDistance->value(), 5 };
+			PortParams pp = { CMD_SJ_GODIST, radioButtonXAxis->isChecked() ? 0x0 : 0x1, spinBoxDistance->value(), doubleSpinBoxSpeed->value() };
 			writeSerialPortCtrl(pp, this);
 
 			//3.
@@ -716,6 +730,12 @@ public://
 			query.addBindValue(comboBoxStep->currentText().toInt());
 			query.exec();
 		}
+	}
+	void PushButtonStartup_clickded()
+	{
+		if (!serialPortCtrl.isOpen()) return;
+		if (!m_pLLT) return;
+		startOrStopScan(timerContinousScan->isActive());
 	}
 
 public://Use sqlite
@@ -747,6 +767,15 @@ public://Use sqlite
 		customPlotViewAnlyse->yAxis->setRange(*minZ, *maxZ);
 		customPlotViewAnlyse->graph(0)->setData(vdValueXX, vdValueZZ);
 		customPlotViewAnlyse->replot();
+	}
+	void customPlotViewAnlyse_mousePress(QMouseEvent* event)
+	{
+		string str("(");
+		str += aaa::num2string(customPlotViewAnlyse->xAxis->pixelToCoord(event->pos().x()), 3);
+		str += ",  ";
+		str += aaa::num2string(customPlotViewAnlyse->yAxis->pixelToCoord(event->pos().y()), 3);
+		str += ")";
+		cpTextElementXY->setText(str.c_str());
 	}
 };
 
