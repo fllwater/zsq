@@ -2,6 +2,7 @@
 #include "InterfaceLLT_2.h"
 #include "qcustomplot.h"
 #include "CommDef.h"
+#pragma execution_character_set("utf-8")
 
 
 #ifndef __demowin_h__
@@ -20,40 +21,40 @@ public://Create UI
 		QWidget *widgetScan = new QWidget(tabWidgetScanAnalyse);
 			QGridLayout *gridLayoutWidgetScan = new QGridLayout(widgetScan);//addin3
 			QCustomPlot *customPlotViewScan = new QCustomPlot(widgetScan);
-			QGroupBox *groupBoxPortSetting = new QGroupBox("Communication Setting", widgetScan);
+			QGroupBox *groupBoxPortSetting = new QGroupBox("通信设置", widgetScan);
 				QGridLayout *gridLayoutGroupBoxPortSetting = new QGridLayout(groupBoxPortSetting);//addin4
 				QComboBox *comboBoxDataPort = new QComboBox(groupBoxPortSetting);
-				QPushButton *pushButtonOpenDataPort = new QPushButton("Open", groupBoxPortSetting);
+				QPushButton *pushButtonOpenDataPort = new QPushButton("打开", groupBoxPortSetting);
 				QComboBox *comboBoxCtrlPort = new QComboBox(groupBoxPortSetting);
-				QPushButton *pushButtonOpenCtrlPort = new QPushButton("Open", groupBoxPortSetting);
-				QPushButton *pushButtonOpenEthernet = new QPushButton("Open Ethernet", groupBoxPortSetting);
+				QPushButton *pushButtonOpenCtrlPort = new QPushButton("打开", groupBoxPortSetting);
+				QPushButton *pushButtonOpenEthernet = new QPushButton("打开扫描设备", groupBoxPortSetting);
 				QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();//special
-			QGroupBox *groupBoxCurrentPose = new QGroupBox("Current Pose", widgetScan);
+			QGroupBox *groupBoxCurrentPose = new QGroupBox("当前姿态", widgetScan);
 				QGridLayout *gridLayoutGroupBoxCurrentPose = new QGridLayout(groupBoxCurrentPose);//addin5
 				QLineEdit *lineEditXAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
 				QLineEdit *lineEditYAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
 				QLineEdit *lineEditZAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
 				QLineEdit *lineEditRotate = new QLineEdit("-1.000", groupBoxCurrentPose);
-			QGroupBox *groupBoxPoseSetting = new QGroupBox("Pose Setting", widgetScan);
+			QGroupBox *groupBoxPoseSetting = new QGroupBox("姿态设置", widgetScan);
 				QGridLayout *gridLayoutPoseSetting = new QGridLayout(groupBoxPoseSetting);//addin6
-				QPushButton *pushButtonMoveRight = new QPushButton("Move Right", groupBoxPoseSetting);
-				QPushButton *pushButtonMoveLeft = new QPushButton("Move Left", groupBoxPoseSetting);
-				QPushButton *pushButtonMoveForward = new QPushButton("Move Forward", groupBoxPoseSetting);
-				QPushButton *pushButtonMoveBackward = new QPushButton("Move Backward", groupBoxPoseSetting);
-				QPushButton *pushButtonMoveUp = new QPushButton("Move Up", groupBoxPoseSetting);
-				QPushButton *pushButtonMoveDown = new QPushButton("Move Down", groupBoxPoseSetting);
-				QPushButton *pushButtonRotateClockwise = new QPushButton("Move Clockwise", groupBoxPoseSetting);
-				QPushButton *pushButtonRotateAntiClockwise = new QPushButton("Move AntiClockwise", groupBoxPoseSetting);
-			QGroupBox *groupBoxScanSetting = new QGroupBox("Scan Setting", widgetScan);
+				QPushButton *pushButtonMoveRight = new QPushButton("向右移", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveLeft = new QPushButton("向左移", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveForward = new QPushButton("向前移", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveBackward = new QPushButton("向后移", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveUp = new QPushButton("向上移", groupBoxPoseSetting);
+				QPushButton *pushButtonMoveDown = new QPushButton("向下移", groupBoxPoseSetting);
+				QPushButton *pushButtonRotateClockwise = new QPushButton("顺旋转", groupBoxPoseSetting);
+				QPushButton *pushButtonRotateAntiClockwise = new QPushButton("逆旋转", groupBoxPoseSetting);
+			QGroupBox *groupBoxScanSetting = new QGroupBox("扫描设置", widgetScan);
 				QGridLayout *gridLayoutGroupBoxScanSetting = new QGridLayout(groupBoxScanSetting);//addin7
-				QRadioButton *radioButtonXAxis = new QRadioButton("X Axis", groupBoxScanSetting); QPushButton *pushButtonReserve1 = new QPushButton("Start", groupBoxScanSetting);
-				QRadioButton *radioButtonYAxis = new QRadioButton("Y Axis", groupBoxScanSetting); QPushButton *pushButtonReserve2 = new QPushButton("Start", groupBoxScanSetting);
+				QRadioButton *radioButtonXAxis = new QRadioButton("X轴", groupBoxScanSetting); QPushButton *pushButtonReserve1 = new QPushButton("开始", groupBoxScanSetting);
+				QRadioButton *radioButtonYAxis = new QRadioButton("Y轴", groupBoxScanSetting); QPushButton *pushButtonReserve2 = new QPushButton("开始", groupBoxScanSetting);
 				QSpinBox *spinBoxDistance = new QSpinBox(groupBoxScanSetting);
 				QComboBox *comboBoxStep = new QComboBox(groupBoxScanSetting);
-			QGroupBox *groupBoxImplement = new QGroupBox("Implement", widgetScan);
+			QGroupBox *groupBoxImplement = new QGroupBox("执行扫描", widgetScan);
 				QGridLayout *gridLayoutGroupBoxImplement = new QGridLayout(groupBoxImplement);//addin8
-				QPushButton *pushButtonReset = new QPushButton("Reset", groupBoxImplement);
-				QPushButton *PushButtonStartup = new QPushButton("Startup", groupBoxImplement);
+				QPushButton *pushButtonReset = new QPushButton("重置", groupBoxImplement);
+				QPushButton *PushButtonStartup = new QPushButton("启动", groupBoxImplement);
 		QWidget *widgetAnalyse = new QWidget(tabWidgetScanAnalyse);
 			QGridLayout *gridLayoutWidgetAnalyse = new QGridLayout(widgetAnalyse);//addin9
 			QTableView *tableViewCatalog = new QTableView(widgetAnalyse);
@@ -66,7 +67,7 @@ public://Create UI
 	void createMainUI()
 	{
 		//0.
-		this->setWindowTitle("Laser Scan");
+		this->setWindowTitle("断面扫描系统");
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
 		this->setMinimumSize(QSize(800, 600));
 		this->setFont(QFont("", 20, QFont::Thin));
@@ -75,8 +76,8 @@ public://Create UI
 		vboxLayoutWorkArea->addWidget(tabWidgetScanAnalyse);
 
 		//addin2
-		tabWidgetScanAnalyse->addTab(widgetScan, "Scan");
-		tabWidgetScanAnalyse->addTab(widgetAnalyse, "Analyse"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
+		tabWidgetScanAnalyse->addTab(widgetScan, "断面扫描");
+		tabWidgetScanAnalyse->addTab(widgetAnalyse, "数据分析"); widgetAnalyse->setFont(QFont("", 10, QFont::Thin));
 
 		//addin3
 		gridLayoutWidgetScan->addWidget(customPlotViewScan, 0, 0, 1, 4); customPlotViewScan->addGraph();
@@ -95,10 +96,10 @@ public://Create UI
 		connect(customPlotViewScan, &QCustomPlot::mousePress, this, &MyWidget::customPlotViewScan_mousePress);
 
 		//addin4
-		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("Data SerialPort", groupBoxPortSetting), 0, 0, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("数据串口", groupBoxPortSetting), 0, 0, 1, 1);
 		gridLayoutGroupBoxPortSetting->addWidget(comboBoxDataPort, 0, 1, 1, 1); for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxDataPort->addItem(listSerialPortInfo[i].portName());
 		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenDataPort, 0, 2, 1, 1);
-		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("Ctrl SerialPort", groupBoxPortSetting), 0, 4, 1, 1);
+		gridLayoutGroupBoxPortSetting->addWidget(new QLabel("控制串口", groupBoxPortSetting), 0, 4, 1, 1);
 		gridLayoutGroupBoxPortSetting->addWidget(comboBoxCtrlPort, 0, 5, 1, 1); for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxCtrlPort->addItem(listSerialPortInfo[i].portName());
 		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenCtrlPort, 0, 6, 1, 1);
 		gridLayoutGroupBoxPortSetting->addWidget(pushButtonOpenEthernet, 0, 8, 1, 1);
@@ -116,18 +117,18 @@ public://Create UI
 		connect(pushButtonOpenEthernet, &QPushButton::clicked, this, &MyWidget::pushButtonOpenEthernet_clickded);
 
 		//addin5
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("X Axis", groupBoxCurrentPose), 0, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("X 坐标", groupBoxCurrentPose), 0, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1); lineEditXAxis->setEnabled(false);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 0, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Y Axis", groupBoxCurrentPose), 1, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 0, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Y 坐标", groupBoxCurrentPose), 1, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditYAxis, 1, 1, 1, 1); lineEditYAxis->setEnabled(false);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 1, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Z Axis", groupBoxCurrentPose), 2, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 1, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Z 坐标", groupBoxCurrentPose), 2, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditZAxis, 2, 1, 1, 1); lineEditZAxis->setEnabled(false);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("mm", groupBoxCurrentPose), 2, 2, 1, 1);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("Rotate", groupBoxCurrentPose), 3, 0, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 2, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("俯仰角", groupBoxCurrentPose), 3, 0, 1, 1);
 		gridLayoutGroupBoxCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1); lineEditRotate->setEnabled(false);
-		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel(QString::fromLocal8Bit("°"), groupBoxCurrentPose), 3, 2, 1, 1);
+		gridLayoutGroupBoxCurrentPose->addWidget(new QLabel("角度", groupBoxCurrentPose), 3, 2, 1, 1);
 
 		//addin6
 		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
@@ -157,15 +158,15 @@ public://Create UI
 
 		//addin7
 		groupBoxScanSetting->setLayout(gridLayoutGroupBoxScanSetting);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Direction", groupBoxScanSetting), 0, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描轴", groupBoxScanSetting), 0, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonXAxis, 0, 1, 1, 1); radioButtonXAxis->setChecked(true); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve1, 0, 2, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(radioButtonYAxis, 1, 1, 1, 1); gridLayoutGroupBoxScanSetting->addWidget(pushButtonReserve2, 1, 2, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Distance", groupBoxScanSetting), 2, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描长度", groupBoxScanSetting), 2, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(spinBoxDistance, 2, 1, 1, 2); spinBoxDistance->setMinimum(-100);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 2, 3, 1, 1);
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("Step", groupBoxScanSetting), 3, 0, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 2, 3, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("扫描步长", groupBoxScanSetting), 3, 0, 1, 1);
 		gridLayoutGroupBoxScanSetting->addWidget(comboBoxStep, 3, 1, 1, 2); comboBoxStep->addItems(QStringList() << "1" << "10");
-		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("mm", groupBoxScanSetting), 3, 3, 1, 1);
+		gridLayoutGroupBoxScanSetting->addWidget(new QLabel("毫米", groupBoxScanSetting), 3, 3, 1, 1);
 		connect(pushButtonReserve1, &QPushButton::clicked, this, &MyWidget::pushButtonReserve1_clicked);
 		connect(pushButtonReserve2, &QPushButton::clicked, this, &MyWidget::pushButtonReserve2_clicked);
 
@@ -188,13 +189,17 @@ public://Create UI
 
 		//addin10
 		db.setDatabaseName("./../data/mysqlite.db");
-		if (!db.open()) { QMessageBox::information(this, "", "Fail to open database, details:\n" + db.lastError().text());  QApplication::exit(); }
+		if (!db.open()) { QMessageBox::information(this, "", "失败打开数据库, 错信息如下:\n" + db.lastError().text());  QApplication::exit(); }
 
 		tableModelCatalog->setTable("tb_scan_catalog");
 		tableModelCatalog->sort(0, Qt::DescendingOrder);
 		tableModelCatalog->setEditStrategy(QSqlTableModel::OnManualSubmit);
 		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
 		tableViewCatalog->setModel(tableModelCatalog);
+		tableModelCatalog->setHeaderData(0, Qt::Horizontal, "扫描主键");
+		tableModelCatalog->setHeaderData(1, Qt::Horizontal, "扫描方向");
+		tableModelCatalog->setHeaderData(2, Qt::Horizontal, "扫描长度");
+		tableModelCatalog->setHeaderData(3, Qt::Horizontal, "扫描步长");
 
 		queryModelDetails->sort(0, Qt::DescendingOrder);
 		//queryModelDetails->setQuery("select timeid, scanid from tb_scan_details", db);
@@ -209,7 +214,7 @@ public://Init serialport
 		if (serialPortXYZR.isOpen())
 		{
 			serialPortXYZR.close();
-			pushButtonOpenDataPort->setText("Open");
+			pushButtonOpenDataPort->setText("打开");
 			disconnect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
 			disconnect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
 			disconnect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
@@ -220,12 +225,12 @@ public://Init serialport
 			serialPortXYZR.setBaudRate(115200);
 			if (serialPortXYZR.open(QIODevice::ReadWrite))
 			{
-				pushButtonOpenDataPort->setText("Close");
+				pushButtonOpenDataPort->setText("关闭");
 				connect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
 				connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
 				connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
 			}
-			else QMessageBox::information(this, "", serialPortXYZR.portName() + " failed to be opened");
+			else QMessageBox::information(this, "", serialPortXYZR.portName() + "打开失败");
 		}
 	}
 	void pushButtonOpenCtrlPort_clickded() 
@@ -233,7 +238,7 @@ public://Init serialport
 		if (serialPortCtrl.isOpen())
 		{
 			serialPortCtrl.close();
-			pushButtonOpenCtrlPort->setText("Open");
+			pushButtonOpenCtrlPort->setText("打开");
 			disconnect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
 			disconnect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
 			disconnect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
@@ -244,12 +249,12 @@ public://Init serialport
 			serialPortCtrl.setBaudRate(115200);
 			if (serialPortCtrl.open(QIODevice::ReadWrite))
 			{
-				pushButtonOpenCtrlPort->setText("Close");
+				pushButtonOpenCtrlPort->setText("关闭");
 				connect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
 				connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
 				connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
 			}
-			else QMessageBox::information(this, "", serialPortCtrl.portName() + " failed to be opened");
+			else QMessageBox::information(this, "", serialPortCtrl.portName() + "打开失败");
 		}
 	}
 
@@ -417,10 +422,10 @@ public://Init ethernet
 		{
 			if (initDevice()) 
 			{ 
-				pushButtonOpenEthernet->setText("Exit Application");
+				pushButtonOpenEthernet->setText("退出扫描系统");
 				connect(timerContinousScan, &QTimer::timeout, this, &MyWidget::timerContinousScan_timeout); 
 			}
-			else QMessageBox::information(this, "", "Fail to connect or open device"); 
+			else QMessageBox::information(this, "", "打开扫描设备失败"); 
 		}
 		else QApplication::exit();
 	}
@@ -470,7 +475,7 @@ public://Read serialportXYZR
 		lineEditRotate->setText(aaa::num2string(realtimeR, 3).c_str());
 	}
 	void serialPortXYZR_bytesWritten() {/*no use*/}
-	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
+	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "", QString("串口发生错误, 错误码为: ") + aaa::num2string(error).c_str()); }
 
 public://Read serialportCtrl
 	queue<uchar> queueCtrl;
@@ -504,7 +509,7 @@ public://Read serialportCtrl
 		else slaveCmdCode = (CMDCODE)data[0];
 	}
 	void serialPortCtrl_bytesWritten() {/*use syn mode*/}
-	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "Warning", QString("Error occured and the error code: ") + aaa::num2string(error).c_str()); }
+	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "", QString("串口发生错误, 错误码为: ") + aaa::num2string(error).c_str()); }
 	
 public://Write serialport
 	typedef struct PortParams
@@ -561,7 +566,7 @@ public://Write serialport
 
 		//6.
 		string tips = "id=" + aaa::num2string(cmdid) + " send=" + (send ? "1" : "0") +" receive=" + (receive ? "1" : "0");
-		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("Laser Scan") : self->windowTitle()) + "     " + tips.c_str());
+		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("断面扫描系统") : self->windowTitle()) + "     " + tips.c_str());
 	}
 	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5 }; writeSerialPortCtrl(pp, this); }
 	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5}; writeSerialPortCtrl(pp, this); }
@@ -583,7 +588,7 @@ public://Write serialport
 	
 	void pushButtonReset_clicked() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST }; writeSerialPortCtrl(pp, this); }
 
-	void pushButtonReserve1_clicked() { bool bl = pushButtonReserve1->text() == "Start"; PortParams pp = { CMD_SJ_REPEAT_GO, bl? 0x1 : 0x0}; writeSerialPortCtrl(pp, this); pushButtonReserve1->setText(bl ? "Stop" : "Start");}
+	void pushButtonReserve1_clicked() { bool bl = pushButtonReserve1->text() == "开始"; PortParams pp = { CMD_SJ_REPEAT_GO, bl? 0x1 : 0x0}; writeSerialPortCtrl(pp, this); pushButtonReserve1->setText(bl ? "停止" : "开始");}
 	void pushButtonReserve2_clicked() {}
 public://
 	long timeid = -1;
@@ -637,7 +642,7 @@ public://
 			lasttimeY = realtimeY;
 			clickSave = false;
 			string tips = string("saved=") + aaa::num2string(scanid).c_str();
-			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("Laser Scan") : this->windowTitle()) + "     " + tips.c_str());
+			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("断面扫描系统") : this->windowTitle()) + "     " + tips.c_str());
 		}
 
 		//4.Show profiles
@@ -666,7 +671,7 @@ public://
 		pushButtonRotateClockwise->setEnabled(enable);
 		pushButtonRotateAntiClockwise->setEnabled(enable);
 		pushButtonReset->setEnabled(enable);
-		PushButtonStartup->setText(enable ? "Startup" : "Stop");
+		PushButtonStartup->setText(enable ? "启动" : "终止");
 	}
 	void customPlotViewScan_mousePress(QMouseEvent *event) { clickSave = true; }
 
@@ -718,6 +723,11 @@ public://Use sqlite
 	{
 		QSqlRecord record = tableModelCatalog->record(modelIndex.row());
 		queryModelDetails->setQuery("select * from tb_scan_details where timeid=" + record.value(0).toString(), db);
+
+		tableViewDetails->hideColumn(0);
+		queryModelDetails->setHeaderData(1, Qt::Horizontal, "扫描序号");
+		tableViewDetails->hideColumn(2);
+		tableViewDetails->hideColumn(3);
 	}
 	void tableViewDetails_clicked(QModelIndex modelIndex)
 	{
