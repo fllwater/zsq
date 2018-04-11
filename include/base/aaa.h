@@ -11,8 +11,9 @@ namespace aaa
 		char result[50]; sprintf(result, format, (double)v);
 		return string(result);
 	}
-	void integral(Mat_<uchar> src, Mat_<int> dst, int rows, int cols)
+	void integral(Mat_<uchar> src, Mat_<int> dst)
 	{	//每点的值包含此点所在行列的值
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int i, j;
 
 		dst(0, 0) = src(0, 0);//行0, 列0
@@ -30,26 +31,25 @@ namespace aaa
 #if 0//For test
 		void integralTest()
 		{
-			int rows = 480;
-			int cols = 640;
-			Mat_<uchar> src(rows, cols); randu(src, 0, 255);
+			Mat_<uchar> src(480, 640); randu(src, 0, 255);
 
-			Mat_<int> dst0(rows + 1, cols + 1);
+			Mat_<int> dst0(src.rows + 1, src.cols + 1);
 			ullong t1 = clock();
 			integral(src, dst0, CV_32S);
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
-			Mat_<int> dst1(rows, cols);
+			Mat_<int> dst1(src.rows, src.cols);
 			t1 = clock();
-			aaa::integral(src, dst1, rows, cols);
+			aaa::integral(src, dst1);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
-			abb::calcErr(dst0(Rect(1, 1, cols, rows)), dst1);
+			abb::calcErr(dst0(Rect(1, 1, src.cols, src.rows)), dst1);
 		}
 #endif
 	}
-	void resize(Mat_<uchar> src, Mat_<uchar> dst, int rows, int cols, int dstrows, int dstcols)
+	void resize(Mat_<uchar> src, Mat_<uchar> dst)
 	{
+		int rows = src.rows, cols = src.cols, total = (int)src.total(), dstrows = dst.rows, dstcols = dst.cols, dsttotal = (int)dst.total();
 		int i, j, ii, jj, rows_ = rows - 1, cols_ = cols - 1, lastrow = rows_ * cols;
 		int idist1, idist2, idist3, idist4, jdist1, jdist2, jdist3, jdist4;
 		float x, y, fx1, fy1, fx2, fy2, fx3, fy3, fx4, fy4;
@@ -103,13 +103,11 @@ namespace aaa
 #if 0
 		void resizeTest()
 		{
-			Mat_<uchar>  src = imread("./../data/nao.jpg", 0);
-			int dstrows = src.rows * 3;
-			int dstcols = src.cols * 3;
-			Mat_<uchar> dst(dstrows, dstcols);
+			Mat_<uchar> src = imread("./../data/nao.jpg", 0);
+			Mat_<uchar> dst(src.rows * 3, src.cols * 3);
 
 			ullong t1 = clock();
-			aaa::resize(src, dst, src.rows, src.cols, dst.rows, dst.cols); bccSaveXML(&dst);
+			aaa::resize(src, dst);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			imshow("src", src);
@@ -118,8 +116,9 @@ namespace aaa
 		}
 #endif
 	}
-	void remap(Mat_<uchar> src, Mat_<uchar> dst, Mat_<float> mapx, Mat_<float> mapy, int rows, int cols)
+	void remap(Mat_<uchar> src, Mat_<uchar> dst, Mat_<float> mapx, Mat_<float> mapy)
 	{
+		int rows = dst.rows, cols = dst.cols, total = (int)dst.total();
 		int i, j, ii, jj, rows_ = rows - 1, cols_ = cols - 1, lastrow = rows_ * cols;
 		int idist1, idist2, idist3, idist4, jdist1, jdist2, jdist3, jdist4;
 		float x, y, fx1, fy1, fx2, fy2, fx3, fy3, fx4, fy4;
@@ -168,7 +167,7 @@ namespace aaa
 #endif
 			}
 #if 0
-		//参见accResize的验证
+		//参见resize的验证
 #endif
 	}
 
@@ -179,45 +178,47 @@ namespace aaa
 	//tips1: 若行坐标i, 则i之前有i行(不含i), i之后有rows-i行(含i)
 	//tips2: 若行坐标i, 则i±k在以i为0开始计数的第k个坐标
 
-	void sepFilter(Mat_<double> src, Mat_<double> dst, int rows, int cols, double *kydata, int krows, double *kxdata, int kcols, double *bufdata/*bufdata尺寸等于kcols*/)
+	void sepFilter(Mat_<double> src, Mat_<double> dst, Mat_<double> kernelY, Mat_<double> kernelX)
 	{
 		//维度变量(根据实际情况清理)
+		int rows = src.rows, cols = src.cols, total = (int)src.total(), krows = (int)kernelY.total(), kcols = (int)kernelX.total();
 		int halfkrows = krows >> 1, krows_ = krows - 1, rows_ = rows - 1, trueRows_ = rows - krows, trueRows = rows - krows_, halfkrowsEx = halfkrows + 1, trueRowsEx = trueRows + halfkrows, rowsEx = rows + halfkrows;
 		int halfkcols = kcols >> 1, kcols_ = kcols - 1, cols_ = cols - 1, trueCols_ = cols - kcols, trueCols = cols - kcols_, halfkcolsEx = halfkcols + 1, trueColsEx = trueCols + halfkcols, colsEx = cols + halfkcols;
 		//步长变量(根据实际情况清理)
 		int i, j, k, ii, jj, kk;
 		//中间变量
 		double tmp;
+		Mat_<double> buf(1, kcols);
 #if 0//不处理边界
 		for (i = 0; i < trueRows; ++i)
 		{
 			//列初始化
 			for (j = 0; j < kcols; ++j)
 			{
-				bufdata[j] = 0;
+				buf(j) = 0;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[j] += kydata[ii] * src(i + ii, j);
+					buf(j) += kernelY(ii) * src(i + ii, j);
 			}
 
 			//列初始化对应的执行
 			j = kcols_;
 			dst(i + halfkrows, j - halfkcols) = 0;
 			for (jj = 0; jj < kcols; ++jj)
-				dst(i + halfkrows, j - halfkcols) += kxdata[jj] * bufdata[jj];
+				dst(i + halfkrows, j - halfkcols) += kernelX(jj) * buf(jj);
 
 			//列主循环	
 			for (j = kcols; j < cols; ++j)
 			{
 				for (jj = 0; jj < kcols_; ++jj)
-					bufdata[jj] = bufdata[jj + 1];
+					buf(jj) = buf(jj + 1);
 
-				bufdata[kcols_] = 0;
+				buf(kcols_) = 0;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[kcols_] += kydata[ii] * src(i + ii, j);
+					buf(kcols_) += kernelY(ii) * src(i + ii, j);
 
 				dst(i + halfkrows, j - halfkcols) = 0;
 				for (jj = 0; jj < kcols; ++jj)
-					dst(i + halfkrows, j - halfkcols) += kxdata[jj] * bufdata[jj];
+					dst(i + halfkrows, j - halfkcols) += kernelX(jj) * buf(jj);
 			}
 		}
 #else//处理边界
@@ -226,11 +227,11 @@ namespace aaa
 			//列初始化
 			for (j = 0; j < halfkcolsEx; ++j)
 			{
-				bufdata[j] = bufdata[j + halfkcols] = 0;
+				buf(j) = buf(j + halfkcols) = 0;
 				for (ii = 0; ii < krows; ++ii)
 				{
-					bufdata[j] += kydata[ii] * src(__max(__min(i + ii, rows_), 0), 0);
-					bufdata[j + halfkcols] += kydata[ii] * src(__max(__min(i + ii, rows_), 0), j);
+					buf(j) += kernelY(ii) * src(__max(__min(i + ii, rows_), 0), 0);
+					buf(j + halfkcols) += kernelY(ii) * src(__max(__min(i + ii, rows_), 0), j);
 				}
 			}
 
@@ -238,21 +239,21 @@ namespace aaa
 			j = halfkcols;
 			dst(i + halfkrows, j - halfkcols) = 0;
 			for (jj = 0; jj < kcols; ++jj)
-				dst(i + halfkrows, j - halfkcols) += kxdata[jj] * bufdata[jj];
+				dst(i + halfkrows, j - halfkcols) += kernelX(jj) * buf(jj);
 
 			//列主循环	
 			for (j = halfkcolsEx; j < colsEx; ++j)
 			{
 				for (jj = 0; jj < kcols_; ++jj)
-					bufdata[jj] = bufdata[jj + 1];
+					buf(jj) = buf(jj + 1);
 
-				bufdata[kcols_] = 0;
+				buf(kcols_) = 0;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[kcols_] += kydata[ii] * src(__max(__min(i + ii, rows_), 0), __min(j, cols_));
+					buf(kcols_) += kernelY(ii) * src(__max(__min(i + ii, rows_), 0), __min(j, cols_));
 
 				dst(i + halfkrows, j - halfkcols) = 0;
 				for (jj = 0; jj < kcols; ++jj)
-					dst(i + halfkrows, j - halfkcols) += kxdata[jj] * bufdata[jj];
+					dst(i + halfkrows, j - halfkcols) += kernelX(jj) * buf(jj);
 			}
 		}
 #endif
@@ -273,13 +274,12 @@ namespace aaa
 
 			Mat_<double> dst0(rows, cols);
 			ullong t1 = clock();
-			GaussianBlur(src, dst0, Size(kcols, krows), sigmaX, sigmaY, BORDER_REPLICATE);
+			GaussianBlur(src, dst0, Size(kcols, krows), sigmaX, sigmaY, cv::BORDER_REPLICATE);
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
 			Mat_<double> dst1(rows, cols, (double)0);
-			Mat_<double> buf(1, kcols);
 			t1 = clock();
-			aaa::sepFilter(src, dst1, rows, cols, (double*)kernelY.data, krows, (double*)kernelX.data, kcols, (double*)buf.data);
+			aaa::sepFilter(src, dst1, kernelY, kernelX);
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
 			//Rect roi(kcols / 2, krows / 2, cols - kcols + 1, rows - krows + 1);
@@ -288,45 +288,47 @@ namespace aaa
 		}
 #endif
 	}
-	void minFilter(Mat_<uchar> src, Mat_<uchar> dst, int rows, int cols, int krows, int kcols, uchar *bufdata/*bufdata尺寸等于kcols*/)
+	void minFilter(Mat_<uchar> src, Mat_<uchar> dst, int krows, int kcols)
 	{
 		//维度变量(根据实际情况清理)
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int halfkrows = krows >> 1, krows_ = krows - 1, rows_ = rows - 1, trueRows_ = rows - krows, trueRows = rows - krows_, halfkrowsEx = halfkrows + 1, trueRowsEx = trueRows + halfkrows, rowsEx = rows + halfkrows;
 		int halfkcols = kcols >> 1, kcols_ = kcols - 1, cols_ = cols - 1, trueCols_ = cols - kcols, trueCols = cols - kcols_, halfkcolsEx = halfkcols + 1, trueColsEx = trueCols + halfkcols, colsEx = cols + halfkcols;
 		//步长变量(根据实际情况清理)
 		int i, j, k, ii, jj, kk;
 		//中间变量
 		uchar tmp;
+		Mat_<uchar> buf(1, kcols);
 #if 0//不处理边界
 		for (i = 0; i < trueRows; ++i)
 		{
 			//列初始化
 			for (j = 0; j < kcols; ++j)
 			{
-				bufdata[j] = UCHAR_MAX;
+				buf(j) = UCHAR_MAX;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[j] = __min(bufdata[j], src(i + ii, j));
+					buf(j) = __min(buf(j), src(i + ii, j));
 			}
 
 			//列初始化对应的执行
 			j = kcols_;
 			dst(i + halfkrows, j - halfkcols) = UCHAR_MAX;
 			for (jj = 0; jj < kcols; ++jj)
-				dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), bufdata[jj]);
+				dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), buf(jj));
 
 			//列主循环	
 			for (j = kcols; j < cols; ++j)
 			{
 				for (jj = 0; jj < kcols_; ++jj)
-					bufdata[jj] = bufdata[jj + 1];
+					buf(jj) = buf(jj + 1);
 
-				bufdata[kcols_] = UCHAR_MAX;
+				buf(kcols_) = UCHAR_MAX;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[kcols_] = __min(bufdata[kcols_], src(ii + i, j));
+					buf(kcols_) = __min(buf(kcols_), src(ii + i, j));
 
 				dst(i + halfkrows, j - halfkcols) = UCHAR_MAX;
 				for (jj = 0; jj < kcols; ++jj)
-					dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), bufdata[jj]);
+					dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), buf(jj));
 			}
 		}
 #else
@@ -335,11 +337,11 @@ namespace aaa
 			//列初始化
 			for (j = 0; j < halfkcolsEx; ++j)
 			{
-				bufdata[j] = bufdata[j + halfkcols] = UCHAR_MAX;
+				buf(j) = buf(j + halfkcols) = UCHAR_MAX;
 				for (ii = 0; ii < krows; ++ii)
 				{
-					bufdata[j] = __min(bufdata[j], src(__max(__min(i + ii, rows_), 0), 0));
-					bufdata[j + halfkcols] = __min(bufdata[j + halfkcols], src(__max(__min(i + ii, rows_), 0), j));
+					buf(j) = __min(buf(j), src(__max(__min(i + ii, rows_), 0), 0));
+					buf(j + halfkcols) = __min(buf(j + halfkcols), src(__max(__min(i + ii, rows_), 0), j));
 				}
 			}
 
@@ -347,21 +349,21 @@ namespace aaa
 			j = halfkcols;
 			dst(i + halfkrows, j - halfkcols) = UCHAR_MAX;
 			for (jj = 0; jj < kcols; ++jj)
-				dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), bufdata[jj]);
+				dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), buf(jj));
 
 			//列主循环	
 			for (j = halfkcolsEx; j < colsEx; ++j)
 			{
 				for (jj = 0; jj < kcols_; ++jj)
-					bufdata[jj] = bufdata[jj + 1];
+					buf(jj) = buf(jj + 1);
 
-				bufdata[kcols_] = UCHAR_MAX;
+				buf(kcols_) = UCHAR_MAX;
 				for (ii = 0; ii < krows; ++ii)
-					bufdata[kcols_] = __min(bufdata[kcols_], src(__max(__min(ii + i, rows_), 0), __min(j, cols_)));
+					buf(kcols_) = __min(buf(kcols_), src(__max(__min(ii + i, rows_), 0), __min(j, cols_)));
 
 				dst(i + halfkrows, j - halfkcols) = UCHAR_MAX;
 				for (jj = 0; jj < kcols; ++jj)
-					dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), bufdata[jj]);
+					dst(i + halfkrows, j - halfkcols) = __min(dst(i + halfkrows, j - halfkcols), buf(jj));
 			}
 		}
 #endif
@@ -377,13 +379,12 @@ namespace aaa
 
 			Mat_<uchar> dst0(rows, cols);
 			ullong t1 = clock();
-			erode(src, dst0, Mat_<uchar>(krows, kcols, (uchar)1), Point(-1, -1), 1, BORDER_REPLICATE); //cout << endl << dstcv << endl;
+			erode(src, dst0, Mat_<uchar>(krows, kcols, (uchar)1), Point(-1, -1), 1, cv::BORDER_REPLICATE); //cout << endl << dstcv << endl;
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			Mat_<uchar> dst1(rows, cols, (uchar)0);
-			Mat_<uchar> buf(1, kcols);
 			t1 = clock();
-			aaa::minFilter(src, dst1, rows, cols, krows, kcols, buf.data); //cout << endl << dst << endl;
+			aaa::minFilter(src, dst1, krows, kcols); //cout << endl << dst << endl;
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			//Rect roi(kcols / 2, krows / 2, cols - kcols + 1, rows - krows + 1);
@@ -392,22 +393,24 @@ namespace aaa
 		}
 #endif
 	}
-	void boxFilter(Mat_<uchar> src, Mat_<int> dst, int rows, int cols, int krows, int kcols, int *bufdata/*bufdata尺寸等于cols*/)
+	void boxFilter(Mat_<uchar> src, Mat_<int> dst, int krows, int kcols)
 	{
 		//维度变量(根据实际情况清理)
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int halfkrows = krows >> 1, krows_ = krows - 1, rows_ = rows - 1, trueRows_ = rows - krows, trueRows = rows - krows_, halfkrowsEx = halfkrows + 1, trueRowsEx = trueRows + halfkrows, rowsEx = rows + halfkrows;
 		int halfkcols = kcols >> 1, kcols_ = kcols - 1, cols_ = cols - 1, trueCols_ = cols - kcols, trueCols = cols - kcols_, halfkcolsEx = halfkcols + 1, trueColsEx = trueCols + halfkcols, colsEx = cols + halfkcols;
 		//步长变量(根据实际情况清理)
 		int i, j, k, ii, jj, kk;
 		//中间变量
 		int sum;
+		Mat_<int> buf(1, cols);
 #if 0//不处理边界
 		//1.行初始化
 		for (j = 0; j < cols; ++j)
 		{
-			bufdata[j] = 0;
+			buf(j) = 0;
 			for (ii = 0; ii < krows; ++ii)
-				bufdata[j] += src(ii, j);
+				buf(j) += src(ii, j);
 		}
 
 		//2.行初始化对应的执行
@@ -416,7 +419,7 @@ namespace aaa
 			//列初始化
 			sum = 0;
 			for (j = 0; j < kcols; ++j)
-				sum += bufdata[j];
+				sum += buf(j);
 
 			//列初始化对应的执行
 			j = kcols_;
@@ -425,7 +428,7 @@ namespace aaa
 			//列主循环
 			for (j = kcols; j < cols; ++j)
 			{
-				sum += bufdata[j] - bufdata[j - kcols];
+				sum += buf(j) - buf(j - kcols);
 				dst(i - halfkrows, j - halfkcols) = sum;
 			}
 		}
@@ -437,8 +440,8 @@ namespace aaa
 			sum = 0;
 			for (j = 0; j < kcols; ++j)
 			{
-				bufdata[j] += src(i, j) - src(i - krows, j);
-				sum += bufdata[j];
+				buf(j) += src(i, j) - src(i - krows, j);
+				sum += buf(j);
 			}
 
 			//列初始化对应的执行
@@ -448,8 +451,8 @@ namespace aaa
 			//列主循环
 			for (j = kcols; j < cols; ++j)
 			{
-				bufdata[j] += src(i, j) - src(i - krows, j);
-				sum += bufdata[j] - bufdata[j - kcols];
+				buf(j) += src(i, j) - src(i - krows, j);
+				sum += buf(j) - buf(j - kcols);
 				dst(i - halfkrows, j - halfkcols) = sum;
 			}
 		}
@@ -457,11 +460,11 @@ namespace aaa
 		//1.行初始化
 		for (j = 0; j < cols; ++j)
 		{
-			bufdata[j] = 0;
+			buf(j) = 0;
 			for (ii = 0; ii < halfkrowsEx; ++ii)
 				ii == 0 ?
-				bufdata[j] += src(ii, j) * halfkrowsEx :
-				bufdata[j] += src(ii, j);
+				buf(j) += src(ii, j) * halfkrowsEx :
+				buf(j) += src(ii, j);
 		}
 
 		//2.行初始化对应的执行
@@ -471,8 +474,8 @@ namespace aaa
 			sum = 0;
 			for (j = 0; j < halfkcolsEx; ++j)
 				j == 0 ?//亦可采用sepFilter方式
-				sum += bufdata[j] * halfkcolsEx :
-				sum += bufdata[j];
+				sum += buf(j) * halfkcolsEx :
+				sum += buf(j);
 
 			//列初始化对应的执行
 			j = halfkcols;
@@ -481,7 +484,7 @@ namespace aaa
 			//列主循环
 			for (j = halfkcolsEx; j < colsEx; ++j)
 			{
-				sum += bufdata[__min(j, cols_)] - bufdata[__max(j - kcols, 0)];
+				sum += buf(__min(j, cols_)) - buf(__max(j - kcols, 0));
 				dst(i - halfkrows, j - halfkcols) = sum;
 			}
 		}
@@ -493,10 +496,10 @@ namespace aaa
 			sum = 0;
 			for (j = 0; j < halfkcolsEx; ++j)
 			{
-				bufdata[j] += src(__min(i, rows_), j) - src(__max(i - krows, 0), j);
+				buf(j) += src(__min(i, rows_), j) - src(__max(i - krows, 0), j);
 				j == 0 ?//亦可采用sepFilter方式
-					sum += bufdata[j] * halfkcolsEx :
-					sum += bufdata[j];
+					sum += buf(j) * halfkcolsEx :
+					sum += buf(j);
 			}
 
 			//列初始化对应的执行
@@ -506,8 +509,8 @@ namespace aaa
 			//列主循环
 			for (j = halfkcolsEx; j < colsEx; ++j)
 			{
-				j < cols ? bufdata[j] += src(__min(i, rows_), j) - src(__max(i - krows, 0), j) : 0;
-				sum += bufdata[__min(j, cols_)] - bufdata[__max(j - kcols, 0)];
+				j < cols ? buf(j) += src(__min(i, rows_), j) - src(__max(i - krows, 0), j) : 0;
+				sum += buf(__min(j, cols_)) - buf(__max(j - kcols, 0));
 				dst(i - halfkrows, j - halfkcols) = sum;
 			}
 		}
@@ -525,13 +528,12 @@ namespace aaa
 
 			Mat_<int> dst0(rows, cols);
 			ullong t1 = clock();
-			boxFilter(src, dst0, CV_32S, Size(kcols, krows), Point(-1, -1), false, BORDER_REPLICATE);//BORDER_CONSTANT//BORDER_REPLICATE//BORDER_REFLECT_101
+			boxFilter(src, dst0, CV_32S, Size(kcols, krows), Point(-1, -1), false, cv::BORDER_REPLICATE);//BORDER_CONSTANT//BORDER_REPLICATE//BORDER_REFLECT_101
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
 			Mat_<int> dst1(rows, cols, 0);
-			Mat_<int> buf(1, cols);
 			t1 = clock();
-			aaa::oxFilter(src, dst1, rows, cols, krows, kcols, (int*)buf.data);
+			aaa::boxFilter(src, dst1, krows, kcols);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			//Rect roi(kcols / 2, krows / 2, cols - kcols + 1, rows - krows + 1);
@@ -540,9 +542,10 @@ namespace aaa
 		}
 #endif
 	}
-	void midFilter(Mat_<uchar> src, Mat_<uchar> dst, int rows, int cols, int krows, int kcols)
+	void midFilterEx(Mat_<uchar> src, Mat_<uchar> dst, int krows, int kcols)
 	{
 		//维度变量(根据实际情况清理)
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int halfkrows = krows >> 1, krows_ = krows - 1, rows_ = rows - 1, trueRows_ = rows - krows, trueRows = rows - krows_, halfkrowsEx = halfkrows + 1, trueRowsEx = trueRows + halfkrows, rowsEx = rows + halfkrows;
 		int halfkcols = kcols >> 1, kcols_ = kcols - 1, cols_ = cols - 1, trueCols_ = cols - kcols, trueCols = cols - kcols_, halfkcolsEx = halfkcols + 1, trueColsEx = trueCols + halfkcols, colsEx = cols + halfkcols;
 		//步长变量(根据实际情况清理)
@@ -679,7 +682,7 @@ namespace aaa
 		}
 #endif
 #if 0 //For test
-		void midFilterTest()
+		void midFilterExTest()
 		{
 			int rows = 480;
 			int cols = 640;
@@ -695,7 +698,7 @@ namespace aaa
 
 			Mat_<uchar> dst1(rows, cols, (uchar)0);
 			t1 = clock();
-			aaa::midFilter(src, dst1, src.rows, src.cols, krows, kcols);
+			aaa::midFilterEx(src, dst1, krows, kcols);
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
 			//Rect roi(kcols / 2, krows / 2, cols - kcols + 1, rows - krows + 1);
@@ -704,8 +707,9 @@ namespace aaa
 		}
 #endif
 	}
-	void midFilter3(Mat_<uchar> src, Mat_<uchar> dst, int rows, int cols)
+	void midFilterEx3(Mat_<uchar> src, Mat_<uchar> dst)
 	{	//适合有并行处理
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int i, j, t, a11, a12, a13, a21, a22, a23, a31, a32, a33;
 		int rows_ = rows - 1, cols_ = cols - 1;
 
@@ -754,7 +758,7 @@ namespace aaa
 				dst(i, j) = a22;
 			}
 #if 0
-		void midFilter3Test()
+		void midFilterEx3Test()
 		{
 			int rows = 480;
 			int cols = 640;
@@ -768,18 +772,18 @@ namespace aaa
 
 			Mat_<uchar> dst1(rows, cols, (uchar)0);
 			t1 = clock();
-			aaa::midFilter3(src, dst1, rows, cols);
+			aaa::midFilterEx3(src, dst1);
 			cout << endl << "time cost cv: " << (clock() - t1) << endl;
 
 			Rect roi(0, 0, cols, rows);
 			abb::calcErr(dst0(roi), dst1(roi));
-		}
-
+	}
 #endif
 	}
 
-	void sobelXFilter(Mat_<uchar> src, Mat_<short> dst, int rows, int cols)
+	void sobelXFilter(Mat_<uchar> src, Mat_<short> dst)
 	{	//原理同SepFilter
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int i, j, rows_ = rows - 1, cols_ = cols - 1, trueRows = rows - 2, trueCols = cols - 2;
 		short s1, s2, s3;
 
@@ -847,12 +851,12 @@ namespace aaa
 
 			Mat_<short> dst0(rows, cols);
 			ullong t1 = clock();
-			Sobel(src, dst0, CV_16S, 1, 0, 3, 1.0, 0, BORDER_REPLICATE);
+			Sobel(src, dst0, CV_16S, 1, 0, 3, 1.0, 0, cv::BORDER_REPLICATE);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			Mat_<short> dst1(rows, cols, (short)0);
 			t1 = clock();
-			aaa::sobelXFilter(src, dst1, rows, cols);
+			aaa::sobelXFilter(src, dst1);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			Rect roi(0, 0, cols, rows);
@@ -860,8 +864,9 @@ namespace aaa
 		}
 #endif
 	}
-	void sobelYFilter(Mat_<uchar> src, Mat_<short> dst, int rows, int cols)
+	void sobelYFilter(Mat_<uchar> src, Mat_<short> dst)
 	{	//原理同SepFilter
+		int rows = src.rows, cols = src.cols, total = (int)src.total();
 		int i, j, rows_ = rows - 1, cols_ = cols - 1, trueRows = rows - 2, trueCols = cols - 2;
 		short s1, s2, s3;
 
@@ -921,12 +926,12 @@ namespace aaa
 
 			Mat_<short> dst0(rows, cols);
 			ullong t1 = clock();
-			Sobel(src, dst0, CV_16S, 0, 1, 3, 1.0, 0, BORDER_REPLICATE);
+			Sobel(src, dst0, CV_16S, 0, 1, 3, 1.0, 0, cv::BORDER_REPLICATE);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			Mat_<short> dst1(rows, cols, (short)0);
 			t1 = clock();
-			aaa::sobelYFilter(src, dst1, rows, cols);
+			aaa::sobelYFilter(src, dst1);
 			cout << endl << "time cost: " << (clock() - t1) << endl;
 
 			Rect roi(0, 0, cols, rows);

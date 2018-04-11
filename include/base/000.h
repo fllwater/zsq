@@ -181,6 +181,8 @@
 #include <QtMultimediaWidgets/QtMultimediaWidgets>
 #define QT_WIDGETS_LIB //For finding QSqlRelationalDelegate
 #include <QtSql/QtSql>
+#include <QtCharts/QtCharts>
+#include <QtDataVisualization/QtDataVisualization>
 #ifdef ROS
 #include <ros/ros.h>
 #endif

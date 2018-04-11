@@ -18,8 +18,8 @@ if(WIN32)
 ###WinLibrary#################################################################
 message("Platform: Win32\n\nPlatform: Win32\n\nPlatform: Win32\n\nPlatform: Win32\n\nPlatform: Win32\n\nPlatform: Win32\n\n")
 #1.1Qt5
-include_directories(D:/app/qt/5.6/msvc2015_64/include)
-file(GLOB Qt5_LIBS LIST_DIRECTORIES false D:/app/qt/5.6/msvc2015_64/lib/Qt5*.lib)#若全部包含则libGLESv2.lib或libGLESv2d.lib将影响pangolin显示
+include_directories(D:/app/qt/5.9.4/msvc2015_64/include)
+file(GLOB Qt5_LIBS LIST_DIRECTORIES false D:/app/qt/5.9.4/msvc2015_64/lib/Qt5*.lib)#若全部包含则libGLESv2.lib或libGLESv2d.lib将影响pangolin显示
 
 #1.2Boost
 include_directories(D:/app/boost)
@@ -151,9 +151,8 @@ if(UNIX AND (${PROJECT_NAME} STREQUAL "aro"))
 ###UbuLibrary#################################################################
 message("Platform: Linux\n\nPlatform: Linux\n\nPlatform: Linux\n\nPlatform: Linux\n\nPlatform: Linux\n\nPlatform: Linux\n\n")
 #1.1Qt5
-find_package(Qt5 REQUIRED COMPONENTS Core)
-include_directories(/usr/include/x86_64-linux-gnu/qt5)
-file(GLOB Qt5_LIBS_DZY /usr/lib/x86_64-linux-gnu/libQt5*.so)
+include_directories(/opt/qt/5.9.4/gcc_64/include)
+file(GLOB Qt5_LIBS_DZY LIST_DIRECTORIES false /opt/qt/5.9.4/gcc_64/lib/libQt5*.so)#若全部包含则libGLESv2.lib或libGLESv2d.lib将影响pangolin显示
 message("Qt5_LIBS_DZY: ${Qt5_LIBS_DZY}")
 
 #1.2Boost
@@ -285,9 +284,8 @@ message("Platform: ROS\n\nPlatform: ROS\n\nPlatform: ROS\n\nPlatform: ROS\n\nPla
 add_definitions(-DROS)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../aro/include)
 #1.1Qt5
-find_package(Qt5 REQUIRED COMPONENTS Core)
-include_directories(/usr/include/x86_64-linux-gnu/qt5)
-file(GLOB Qt5_LIBS_DZY /usr/lib/x86_64-linux-gnu/libQt5*.so)
+include_directories(/opt/qt/5.9.4/gcc_64/include)
+file(GLOB Qt5_LIBS_DZY LIST_DIRECTORIES false /opt/qt/5.9.4/gcc_64/lib/libQt5*.so)#若全部包含则libGLESv2.lib或libGLESv2d.lib将影响pangolin显示
 message("Qt5_LIBS_DZY: ${Qt5_LIBS_DZY}")
 
 #1.2Boost
