@@ -69,7 +69,7 @@ public://Create UI
 	void createMainUI()
 	{
 		//0.
-		this->setWindowTitle("断面扫描系统");
+		this->setWindowTitle("重庆市计量质量检测研究院缝隙检测仪");
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
 		this->setMinimumSize(QSize(800, 600));
 		this->setFont(QFont("", 20, QFont::Thin));
@@ -576,7 +576,7 @@ public://Write serialport
 
 		//6.
 		string tips = "id=" + aaa::num2string(cmdid) + " send=" + (send ? "1" : "0") +" receive=" + (receive ? "1" : "0");
-		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("断面扫描系统") : self->windowTitle()) + "     " + tips.c_str());
+		self->setWindowTitle((self->windowTitle().size() > 200 ? QString("重庆市计量质量检测研究院缝隙检测仪") : self->windowTitle()) + "     " + tips.c_str());
 	}
 	void pushButtonMoveRight_pressed() { if(!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST, 0x0, 200, 5 }; writeSerialPortCtrl(pp, this); }
 	void pushButtonMoveLeft_pressed() { if (!serialPortCtrl.isOpen()) return; PortParams pp = { CMD_SJ_GODIST,0x0, -200, 5 }; writeSerialPortCtrl(pp, this); }
@@ -639,19 +639,21 @@ public://
 			clickSave)
 		{
 			QSqlQuery query(db);
-			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, xdata, zdata) values (?, ?, ?, ?, ?)");
+			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, scanang, xdata, zdata) values (?, ?, ?, ?, ?, ?)");
 			query.addBindValue(timeid);
 			query.addBindValue(scanid++);
 			query.addBindValue(radioButtonXAxis->isChecked() ? realtimeX : realtimeY);
+			query.addBindValue(realtimeR);
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
 			query.exec();
 
 			lasttimeX = realtimeX;
 			lasttimeY = realtimeY;
+			lasttimeR = realtimeR;
 			clickSave = false;
 			string tips = string("saved=") + aaa::num2string(scanid).c_str();
-			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("断面扫描系统") : this->windowTitle()) + "     " + tips.c_str());
+			this->setWindowTitle((this->windowTitle().size() > 200 ? QString("重庆市计量质量检测研究院缝隙检测仪") : this->windowTitle()) + "     " + tips.c_str());
 		}
 
 		//4.Stop scan
@@ -750,16 +752,17 @@ public://Use sqlite
 		tableViewDetails->hideColumn(0);
 		queryModelDetails->setHeaderData(1, Qt::Horizontal, "扫描序号");
 		queryModelDetails->setHeaderData(2, Qt::Horizontal, "扫描位置");
-		tableViewDetails->hideColumn(3);
+		queryModelDetails->setHeaderData(3, Qt::Horizontal, "扫描角度");
 		tableViewDetails->hideColumn(4);
+		tableViewDetails->hideColumn(5);
 	}
 	void tableViewDetails_clicked(QModelIndex modelIndex)
 	{
 		QSqlRecord record = queryModelDetails->record(modelIndex.row());
-		vector<double> vdValueX(record.value(3).toByteArray().size() / sizeof(double));
-		vector<double> vdValueZ(record.value(4).toByteArray().size() / sizeof(double));
-		memcpy(&vdValueX[0], record.value(3).toByteArray().data(), record.value(3).toByteArray().size());
-		memcpy(&vdValueZ[0], record.value(4).toByteArray().data(), record.value(4).toByteArray().size());
+		vector<double> vdValueX(record.value(4).toByteArray().size() / sizeof(double));
+		vector<double> vdValueZ(record.value(5).toByteArray().size() / sizeof(double));
+		memcpy(&vdValueX[0], record.value(4).toByteArray().data(), record.value(4).toByteArray().size());
+		memcpy(&vdValueZ[0], record.value(5).toByteArray().data(), record.value(5).toByteArray().size());
 
 		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
 		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
