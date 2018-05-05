@@ -782,6 +782,13 @@ public://Use sqlite
 		str += ",  ";
 		str += aaa::num2string(customPlotViewAnlyse->yAxis->pixelToCoord(event->pos().y()), 3);
 		str += ")";
+
+		static double lastX = 0;
+		double thisX = customPlotViewAnlyse->xAxis->pixelToCoord(event->pos().x());
+		double gap = __abs(thisX - lastX);
+		str += "         gap = abs(" + aaa::num2string(thisX, 3) + " - " + aaa::num2string(lastX, 3) + ") = " + aaa::num2string(gap, 3);
+		lastX = thisX;
+
 		cpTextElementXY->setText(str.c_str());
 	}
 };
