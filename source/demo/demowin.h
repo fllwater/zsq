@@ -798,6 +798,34 @@ class DemoCQScan : public QWidget
 public://Process events
 	void timerMain_timeout() {}//not use in this demo
 
+	void tableViewCatalog_clicked(QModelIndex modelIndex)
+	{
+		QSqlRecord record = tableModelCatalog->record(modelIndex.row());
+		queryModelDetails->setQuery("select * from tb_scan_details where timeid=" + record.value(0).toString(), db);
+
+		tableViewDetails->hideColumn(0);
+		queryModelDetails->setHeaderData(1, Qt::Horizontal, "扫描序号");
+		queryModelDetails->setHeaderData(2, Qt::Horizontal, "扫描位置");
+		queryModelDetails->setHeaderData(3, Qt::Horizontal, "扫描角度");
+		tableViewDetails->hideColumn(4);
+		tableViewDetails->hideColumn(5);
+	}
+	void tableViewDetails_clicked(QModelIndex modelIndex)
+	{
+		QSqlRecord record = queryModelDetails->record(modelIndex.row());
+		vector<double> vdValueX(record.value(4).toByteArray().size() / sizeof(double));
+		vector<double> vdValueZ(record.value(5).toByteArray().size() / sizeof(double));
+		memcpy(&vdValueX[0], record.value(4).toByteArray().data(), record.value(4).toByteArray().size());
+		memcpy(&vdValueZ[0], record.value(5).toByteArray().data(), record.value(5).toByteArray().size());
+
+		vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
+		vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
+		vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
+		QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
+		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+	}
+
 public://DIY code
 
 public://DIY UI
@@ -815,13 +843,17 @@ public://Init UI and Data
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
 		this->setMinimumSize(QSize(800, 600));
 		this->setFont(QFont("", 20, QFont::Thin));
+		{
+			db.setDatabaseName("./../data/mysqlite.db");
+			if (!db.open()) { QMessageBox::information(this, "", "失败打开数据库, 错信息如下:\n" + db.lastError().text());  QApplication::exit(); }
+		}
 
 		//1.Group1 setting
 		gridLayoutWidgetMain->addWidget(tabWidgetMain);
 		tabWidgetMain->addTab(widgetScanInitial, "采样设置");
 		tabWidgetMain->addTab(widgetScanAutomatic, "自动扫描"); 
 		tabWidgetMain->addTab(widgetScanHistroty, "历史记录");
-		{
+		{	
 			widgetScanHistroty->setFont(QFont("", 10, QFont::Thin));
 			connect(tabWidgetMain, &QTabWidget::tabBarClicked, [this](int index = 2)->void {if (index == 2) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }});
 		}
@@ -832,10 +864,63 @@ public://Init UI and Data
 		gridLayoutScanSetting->addWidget(groupBoxCurrentPose, 1, 1, 1, 1);
 		gridLayoutScanSetting->addWidget(groupBoxPoseSetting, 1, 2, 1, 1);
 		gridLayoutScanSetting->addWidget(groupBoxSampleScan, 1, 3, 1, 1);
+		gridLayoutScanSetting->setColumnStretch(0, 0);
+		gridLayoutScanSetting->setColumnStretch(1, 2);
+		gridLayoutScanSetting->setColumnStretch(2, 2);
+		gridLayoutScanSetting->setColumnStretch(3, 1);
 
 		//3.Group3 setting
+		gridLayoutScanAutomatic->addWidget(chartViewAutomatic, 0, 0, 1, 3);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描轴", comboBoxScanAxis), 1, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(comboBoxScanAxis, 1, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描速度", widgetScanAutomatic), 2, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(doubleSpinBoxScanSpeed, 2, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描距离", widgetScanAutomatic), 3, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(spinBoxScanDistance, 3, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描步长", widgetScanAutomatic), 4, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(comboBoxScanStep, 4, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(pushButtonAutomatic, 1, 2, 4, 1);
+		{
+			comboBoxScanAxis->addItems(QStringList() << "X 轴" << "Y 轴");
+			doubleSpinBoxScanSpeed->setMinimum(1.0); 
+			doubleSpinBoxScanSpeed->setMaximum(5.0); 
+			doubleSpinBoxScanSpeed->setValue(3.0);
+			spinBoxScanDistance->setMinimum(-100);
+			comboBoxScanStep->addItems(QStringList() << "2" << "5" << "10");
+			pushButtonAutomatic->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+		}
+		gridLayoutScanAutomatic->setColumnStretch(0, 0);
+		gridLayoutScanAutomatic->setColumnStretch(1, 1);
+		gridLayoutScanAutomatic->setColumnStretch(2, 1);
 
 		//4.Group4 setting
+		gridLayoutScanHistroty->addWidget(chartViewHistory, 0, 0, 1, 2);
+		gridLayoutScanHistroty->addWidget(tableViewCatalog, 1, 0, 1, 1);
+		gridLayoutScanHistroty->addWidget(tableViewDetails, 1, 1, 1, 1); 
+		{
+			tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
+			tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
+			tableViewCatalog->setModel(tableModelCatalog);
+			tableViewDetails->setModel(queryModelDetails);
+			connect(tableViewCatalog, &QTableView::clicked, this, &DemoCQScan::tableViewCatalog_clicked);
+			connect(tableViewDetails, &QTableView::clicked, this, &DemoCQScan::tableViewDetails_clicked);
+
+			tableModelCatalog->setTable("tb_scan_catalog");
+			tableModelCatalog->sort(0, Qt::DescendingOrder);
+			tableModelCatalog->setEditStrategy(QSqlTableModel::OnManualSubmit);
+			if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
+
+			tableModelCatalog->setHeaderData(0, Qt::Horizontal, "扫描主键");
+			tableModelCatalog->setHeaderData(1, Qt::Horizontal, "扫描方向");
+			tableModelCatalog->setHeaderData(2, Qt::Horizontal, "扫描长度");
+			tableModelCatalog->setHeaderData(3, Qt::Horizontal, "扫描步长");
+
+			queryModelDetails->sort(0, Qt::DescendingOrder);
+		}
+		gridLayoutScanHistroty->setRowStretch(0, 4);
+		gridLayoutScanHistroty->setRowStretch(1, 1);
+		gridLayoutScanHistroty->setColumnStretch(0, 3);
+		gridLayoutScanHistroty->setColumnStretch(1, 2);
 
 		//5.Group5 setting
 		gridLayoutPortSetting->addWidget(new QLabel("数据串口", groupBoxPortSetting), 0, 0, 1, 1);
@@ -869,13 +954,10 @@ public://Init UI and Data
 		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
-		{
-
-		}
 
 		//8.Group8 setting
-		gridLayoutGroupSampleScan->addWidget(pushButtonReset, 0, 0, 1, 1);
-		gridLayoutGroupSampleScan->addWidget(pushButtonSample, 1, 0, 1, 1);
+		gridLayoutGroupSampleScan->addWidget(pushButtonSample, 0, 0, 1, 1);
+		gridLayoutGroupSampleScan->addWidget(pushButtonReset, 1, 0, 1, 1);
 		{
 			pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 			pushButtonSample->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
@@ -896,18 +978,18 @@ public://UI members
 	QGroupBox *groupBoxPoseSetting = new QGroupBox("姿态设置", widgetScanInitial);
 	QGroupBox *groupBoxSampleScan = new QGroupBox("采样重置", widgetScanInitial);
 
-	//QGridLayout *gridLayoutScanAutomatic = new QGridLayout(widgetScanAutomatic);
-	//QChartView *chartViewAutomatic = new QChartView(widgetScanAutomatic);
-	//QComboBox *comboBoxScanAxis = new QComboBox(widgetScanAutomatic);
-	//QDoubleSpinBox *doubleSpinBoxScanSpeed = new QDoubleSpinBox(widgetScanAutomatic);
-	//QSpinBox *spinBoxScanDistance = new QSpinBox(widgetScanAutomatic);
-	//QComboBox *comboBoxScanStep = new QComboBox(widgetScanAutomatic);
-	//QPushButton *pushButtonAutomatic = new QPushButton("一键扫描", groupBoxSampleScan);
+	QGridLayout *gridLayoutScanAutomatic = new QGridLayout(widgetScanAutomatic);
+	QChartView *chartViewAutomatic = new QChartView(widgetScanAutomatic);
+	QComboBox *comboBoxScanAxis = new QComboBox(widgetScanAutomatic);
+	QDoubleSpinBox *doubleSpinBoxScanSpeed = new QDoubleSpinBox(widgetScanAutomatic);
+	QSpinBox *spinBoxScanDistance = new QSpinBox(widgetScanAutomatic);
+	QComboBox *comboBoxScanStep = new QComboBox(widgetScanAutomatic);
+	QPushButton *pushButtonAutomatic = new QPushButton("一键扫描", groupBoxSampleScan);
 
-	//QGridLayout *gridLayoutScanHistroty = new QGridLayout(widgetScanHistroty);
-	//QTableView *tableViewCatalog = new QTableView(widgetScanHistroty);
-	//QTableView *tableViewDetails = new QTableView(widgetScanHistroty);
-	//QChartView *chartViewHistory = new QChartView(widgetScanHistroty);
+	QGridLayout *gridLayoutScanHistroty = new QGridLayout(widgetScanHistroty);
+	QChartView *chartViewHistory = new QChartView(widgetScanHistroty);
+	QTableView *tableViewCatalog = new QTableView(widgetScanHistroty);
+	QTableView *tableViewDetails = new QTableView(widgetScanHistroty);
 
 	QGridLayout *gridLayoutPortSetting = new QGridLayout(groupBoxPortSetting);
 	QComboBox *comboBoxDataPort = new QComboBox(groupBoxPortSetting);
@@ -933,8 +1015,8 @@ public://UI members
 	QPushButton *pushButtonRotateAntiClockwise = new QPushButton("逆旋转", groupBoxPoseSetting);
 
 	QGridLayout *gridLayoutGroupSampleScan = new QGridLayout(groupBoxSampleScan);
-	QPushButton *pushButtonReset = new QPushButton("重置", groupBoxSampleScan);
 	QPushButton *pushButtonSample = new QPushButton("采样", groupBoxSampleScan);
+	QPushButton *pushButtonReset = new QPushButton("重置", groupBoxSampleScan);
 
 public://Data members	
 	QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
