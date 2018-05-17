@@ -793,5 +793,154 @@ public://Use sqlite
 	}
 };
 
+class DemoCQScan : public QWidget
+{
+public://Process events
+	void timerMain_timeout() {}//not use in this demo
+
+public://DIY code
+
+public://DIY UI
+
+public://UI members
+
+public://Data members
+	QTimer *timerMain = new QTimer(this); //Responsible with commincation with other timers and threads (varibles shared with other timers or/and main thread don't need mutex because of interruption call, and others shared with std::thread do because of different threads)
+
+public://Init UI and Data
+	DemoCQScan(QWidget *parent = 0) : QWidget(parent)
+	{
+		//0.Basic settting
+		this->setWindowTitle("重庆市计量质量检测研究院缝隙检测仪");
+		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
+		this->setMinimumSize(QSize(800, 600));
+		this->setFont(QFont("", 20, QFont::Thin));
+
+		//1.Group1 setting
+		gridLayoutWidgetMain->addWidget(tabWidgetMain);
+		tabWidgetMain->addTab(widgetScanInitial, "采样设置");
+		tabWidgetMain->addTab(widgetScanAutomatic, "自动扫描"); 
+		tabWidgetMain->addTab(widgetScanHistroty, "历史记录");
+		{
+			widgetScanHistroty->setFont(QFont("", 10, QFont::Thin));
+			connect(tabWidgetMain, &QTabWidget::tabBarClicked, [this](int index = 2)->void {if (index == 2) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }});
+		}
+
+		//2.Group2 setting
+		gridLayoutScanSetting->addWidget(chartViewSample, 0, 0, 1, 4);
+		gridLayoutScanSetting->addWidget(groupBoxPortSetting, 1, 0, 1, 1);
+		gridLayoutScanSetting->addWidget(groupBoxCurrentPose, 1, 1, 1, 1);
+		gridLayoutScanSetting->addWidget(groupBoxPoseSetting, 1, 2, 1, 1);
+		gridLayoutScanSetting->addWidget(groupBoxSampleScan, 1, 3, 1, 1);
+
+		//3.Group3 setting
+
+		//4.Group4 setting
+
+		//5.Group5 setting
+		gridLayoutPortSetting->addWidget(new QLabel("数据串口", groupBoxPortSetting), 0, 0, 1, 1);
+		gridLayoutPortSetting->addWidget(comboBoxDataPort, 0, 1, 1, 1);
+		gridLayoutPortSetting->addWidget(pushButtonOpenDataPort, 0, 2, 1, 1);
+		gridLayoutPortSetting->addWidget(new QLabel("控制串口", groupBoxPortSetting), 1, 0, 1, 1);
+		gridLayoutPortSetting->addWidget(comboBoxCtrlPort, 1, 1, 1, 1);
+		gridLayoutPortSetting->addWidget(pushButtonOpenCtrlPort, 1, 2, 1, 1);
+		gridLayoutPortSetting->addWidget(pushButtonOpenEthernet, 2, 0, 1, 3);
+		{
+			for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxDataPort->addItem(listSerialPortInfo[i].portName());
+			for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxCtrlPort->addItem(listSerialPortInfo[i].portName());
+		}
+
+		//6.Group6 setting
+		gridLayoutCurrentPose->addWidget(new QLabel("X 坐标", groupBoxCurrentPose), 0, 0, 1, 1);
+		gridLayoutCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("Y 坐标", groupBoxCurrentPose), 1, 0, 1, 1);
+		gridLayoutCurrentPose->addWidget(lineEditYAxis, 1, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("Z 坐标", groupBoxCurrentPose), 2, 0, 1, 1);
+		gridLayoutCurrentPose->addWidget(lineEditZAxis, 2, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("旋转角", groupBoxCurrentPose), 3, 0, 1, 1);
+		gridLayoutCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1);
+
+		//7.Group7 setting
+		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveLeft, 0, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveForward, 1, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveBackward, 1, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveUp, 2, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
+		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
+		{
+
+		}
+
+		//8.Group8 setting
+		gridLayoutGroupSampleScan->addWidget(pushButtonReset, 0, 0, 1, 1);
+		gridLayoutGroupSampleScan->addWidget(pushButtonSample, 1, 0, 1, 1);
+		{
+			pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+			pushButtonSample->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+		}
+
+	}
+public://UI members
+	QGridLayout *gridLayoutWidgetMain = new QGridLayout(this);
+	QTabWidget *tabWidgetMain = new QTabWidget(this);
+	QWidget *widgetScanInitial = new QWidget(tabWidgetMain);
+	QWidget *widgetScanAutomatic = new QWidget(tabWidgetMain);
+	QWidget *widgetScanHistroty = new QWidget(tabWidgetMain);
+
+	QGridLayout *gridLayoutScanSetting = new QGridLayout(widgetScanInitial);
+	QChartView *chartViewSample = new QChartView(widgetScanInitial);
+	QGroupBox *groupBoxPortSetting = new QGroupBox("通信设置", widgetScanInitial);
+	QGroupBox *groupBoxCurrentPose = new QGroupBox("当前姿态", widgetScanInitial);
+	QGroupBox *groupBoxPoseSetting = new QGroupBox("姿态设置", widgetScanInitial);
+	QGroupBox *groupBoxSampleScan = new QGroupBox("采样重置", widgetScanInitial);
+
+	//QGridLayout *gridLayoutScanAutomatic = new QGridLayout(widgetScanAutomatic);
+	//QChartView *chartViewAutomatic = new QChartView(widgetScanAutomatic);
+	//QComboBox *comboBoxScanAxis = new QComboBox(widgetScanAutomatic);
+	//QDoubleSpinBox *doubleSpinBoxScanSpeed = new QDoubleSpinBox(widgetScanAutomatic);
+	//QSpinBox *spinBoxScanDistance = new QSpinBox(widgetScanAutomatic);
+	//QComboBox *comboBoxScanStep = new QComboBox(widgetScanAutomatic);
+	//QPushButton *pushButtonAutomatic = new QPushButton("一键扫描", groupBoxSampleScan);
+
+	//QGridLayout *gridLayoutScanHistroty = new QGridLayout(widgetScanHistroty);
+	//QTableView *tableViewCatalog = new QTableView(widgetScanHistroty);
+	//QTableView *tableViewDetails = new QTableView(widgetScanHistroty);
+	//QChartView *chartViewHistory = new QChartView(widgetScanHistroty);
+
+	QGridLayout *gridLayoutPortSetting = new QGridLayout(groupBoxPortSetting);
+	QComboBox *comboBoxDataPort = new QComboBox(groupBoxPortSetting);
+	QPushButton *pushButtonOpenDataPort = new QPushButton("打开", groupBoxPortSetting);
+	QComboBox *comboBoxCtrlPort = new QComboBox(groupBoxPortSetting);
+	QPushButton *pushButtonOpenCtrlPort = new QPushButton("打开", groupBoxPortSetting);
+	QPushButton *pushButtonOpenEthernet = new QPushButton("打开激光设备", groupBoxPortSetting);
+	
+	QGridLayout *gridLayoutCurrentPose = new QGridLayout(groupBoxCurrentPose);
+	QLineEdit *lineEditXAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+	QLineEdit *lineEditYAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+	QLineEdit *lineEditZAxis = new QLineEdit("-1.000", groupBoxCurrentPose);
+	QLineEdit *lineEditRotate = new QLineEdit("-1.000", groupBoxCurrentPose);
+
+	QGridLayout *gridLayoutPoseSetting = new QGridLayout(groupBoxPoseSetting);
+	QPushButton *pushButtonMoveRight = new QPushButton("向右移", groupBoxPoseSetting);
+	QPushButton *pushButtonMoveLeft = new QPushButton("向左移", groupBoxPoseSetting);
+	QPushButton *pushButtonMoveForward = new QPushButton("向前移", groupBoxPoseSetting);
+	QPushButton *pushButtonMoveBackward = new QPushButton("向后移", groupBoxPoseSetting);
+	QPushButton *pushButtonMoveUp = new QPushButton("向上移", groupBoxPoseSetting);
+	QPushButton *pushButtonMoveDown = new QPushButton("向下移", groupBoxPoseSetting);
+	QPushButton *pushButtonRotateClockwise = new QPushButton("顺旋转", groupBoxPoseSetting);
+	QPushButton *pushButtonRotateAntiClockwise = new QPushButton("逆旋转", groupBoxPoseSetting);
+
+	QGridLayout *gridLayoutGroupSampleScan = new QGridLayout(groupBoxSampleScan);
+	QPushButton *pushButtonReset = new QPushButton("重置", groupBoxSampleScan);
+	QPushButton *pushButtonSample = new QPushButton("采样", groupBoxSampleScan);
+
+public://Data members	
+	QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
+	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
+	QSqlTableModel *tableModelCatalog = new QSqlTableModel(this, db);
+	QSqlQueryModel *queryModelDetails = new QSqlQueryModel(this);	
+};
 
 #endif
