@@ -1053,7 +1053,7 @@ public://User events: PortManagement
 	void tabWidget_tabBarClicked(int index)
 	{
 		if (index != 2) return;
-		chartMain->removeAllSeries();
+		chart->removeAllSeries();
 		if (timerContinousScan->isActive()) timerContinousScan->stop();
 		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
 	}
@@ -1074,33 +1074,15 @@ public://User events: PortManagement
 		QSqlRecord record = queryModelDetails->record(modelIndex.row());
 
 		int sz = record.value(4).toByteArray().size() / sizeof(double);
-		double *xdata = (double*)record.value(4).toByteArray().data();
-		double *zdata = (double*)record.value(5).toByteArray().data();
+		const double *xdata = (double*)(record.value(4).toByteArray().constData());//toByteArray is temperary, and data() is invalid
+		const double *zdata = (double*)(record.value(5).toByteArray().constData());//but constData() is valid, don't know the reason.
 
 		QSplineSeries *series = new QSplineSeries();
 		for (int i = 0; i < sz; ++i) series->append(xdata[i], zdata[i]);
-		
-		chartMain->removeAllSeries();
-		chartMain->addSeries(series);
-		
-		chartMain->setTitle("Title: QSplineSeries");
-		chartMain->legend()->setMarkerShape(QLegend::MarkerShapeRectangle);
-		chartMain->createDefaultAxes();
-		chartMain->axisX()->setTitleText("X-axis"); chartMain->axisX()->setTitleVisible(true); //chart->axisX()->setRange(-100 * 1.2, 100 * 1.2);
-		chartMain->axisY()->setTitleText("Y-axis"); chartMain->axisY()->setTitleVisible(true); //chart->axisY()->setRange(-2 * 10 * 10 * 1.2, 2 * 100 * 100 * 1.2);
-
-
-		//vector<double> vdValueX(record.value(4).toByteArray().size() / sizeof(double));
-		//vector<double> vdValueZ(record.value(5).toByteArray().size() / sizeof(double));
-		//memcpy(&vdValueX[0], record.value(4).toByteArray().data(), record.value(4).toByteArray().size());
-		//memcpy(&vdValueZ[0], record.value(5).toByteArray().data(), record.value(5).toByteArray().size());
-
-		//vector<double>::iterator minX = min_element(std::begin(vdValueX), std::end(vdValueX));
-		//vector<double>::iterator maxX = max_element(std::begin(vdValueX), std::end(vdValueX));
-		//vector<double>::iterator minZ = min_element(std::begin(vdValueZ), std::end(vdValueZ));
-		//vector<double>::iterator maxZ = max_element(std::begin(vdValueZ), std::end(vdValueZ));
-		//QVector<double> vdValueXX = QVector<double>::fromStdVector(vdValueX);
-		//QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
+		chart->removeAllSeries();
+		chart->addSeries(series);
+		chart->legend()->setVisible(false);
+		chart->createDefaultAxes();
 	}
 
 public://Interruption events
@@ -1220,7 +1202,7 @@ public://Init UI and Data
 		tabWidget->addTab(widgetScanAutomatic, "自动扫描"); 
 		tabWidget->addTab(widgetScanHistroty, "历史记录");
 		{	
-			chartView->setChart(chartMain);
+			chartView->setChart(chart);
 			chartView->setRenderHint(QPainter::Antialiasing);
 			widgetScanHistroty->setFont(QFont("", 10, QFont::Thin));
 			connect(tabWidget, &QTabWidget::tabBarClicked, this, &DemoCQScan::tabWidget_tabBarClicked);
@@ -1419,7 +1401,7 @@ public://Data members
 	uint m_uiResolution = 0;
 	QTimer *timerContinousScan = new QTimer(this);
 
-	QChart *chartMain = new QChart();
+	QChart *chart = new QChart();
 
 	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
 	QSqlTableModel *tableModelCatalog = new QSqlTableModel(this, db);
