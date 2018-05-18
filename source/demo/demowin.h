@@ -225,8 +225,8 @@ public://Init serialport
 			serialPortXYZR.close();
 			pushButtonOpenDataPort->setText("打开");
 			disconnect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
-			disconnect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
-			disconnect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
+			//disconnect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
+			//disconnect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
 		}
 		else
 		{
@@ -236,8 +236,8 @@ public://Init serialport
 			{
 				pushButtonOpenDataPort->setText("关闭");
 				connect(&serialPortXYZR, &QSerialPort::readyRead, this, &MyWidget::serialPortXYZR_readyRead);
-				connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
-				connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
+				//connect(&serialPortXYZR, &QSerialPort::bytesWritten, this, &MyWidget::serialPortXYZR_bytesWritten);
+				//connect(&serialPortXYZR, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortXYZR_error);
 			}
 			else QMessageBox::information(this, "", serialPortXYZR.portName() + "打开失败");
 		}
@@ -249,8 +249,8 @@ public://Init serialport
 			serialPortCtrl.close();
 			pushButtonOpenCtrlPort->setText("打开");
 			disconnect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
-			disconnect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
-			disconnect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
+			//disconnect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
+			//disconnect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
 		}
 		else
 		{
@@ -260,8 +260,8 @@ public://Init serialport
 			{
 				pushButtonOpenCtrlPort->setText("关闭");
 				connect(&serialPortCtrl, &QSerialPort::readyRead, this, &MyWidget::serialPortCtrl_readyRead);
-				connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
-				connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
+				//connect(&serialPortCtrl, &QSerialPort::bytesWritten, this, &MyWidget::serialPortCtrl_bytesWritten);
+				//connect(&serialPortCtrl, static_cast<void(QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &MyWidget::serialPortCtrl_error);
 			}
 			else QMessageBox::information(this, "", serialPortCtrl.portName() + "打开失败");
 		}
@@ -483,8 +483,6 @@ public://Read serialportXYZR
 		lineEditZAxis->setText(aaa::num2string(realtimeZ, 3).c_str());
 		lineEditRotate->setText(aaa::num2string(realtimeR, 3).c_str());
 	}
-	void serialPortXYZR_bytesWritten() {/*no use*/}
-	void serialPortXYZR_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "", QString("串口发生错误, 错误码为: ") + aaa::num2string(error).c_str()); }
 
 public://Read serialportCtrl
 	queue<uchar> queueCtrl;
@@ -517,9 +515,7 @@ public://Read serialportCtrl
 		if (sumCalc != sumTrue) slaveCmdCode = CMD_INVALID;
 		else slaveCmdCode = (CMDCODE)data[0];
 	}
-	void serialPortCtrl_bytesWritten() {/*use syn mode*/}
-	void serialPortCtrl_error(QSerialPort::SerialPortError error) { if (error > 0) QMessageBox::warning(this, "", QString("串口发生错误, 错误码为: ") + aaa::num2string(error).c_str()); }
-	
+
 public://Write serialport
 	typedef struct PortParams
 	{
@@ -795,8 +791,266 @@ public://Use sqlite
 
 class DemoCQScan : public QWidget
 {
-public://Process events
-	void timerMain_timeout() {}//not use in this demo
+public://User events: PortManagement
+	void pushButtonOpenDataPort_clickded()
+	{
+		if (portXYZR.isOpen()) 
+		{ 
+			portXYZR.close(); 
+			pushButtonOpenDataPort->setText("打开");
+			this->setWindowTitle(portXYZR.portName() + " closed with success");
+		}
+		else
+		{
+			portXYZR.setPort(QSerialPortInfo(comboBoxDataPort->currentText()));
+			portXYZR.setBaudRate(115200);
+			if (portXYZR.open(QIODevice::ReadWrite))
+			{
+				pushButtonOpenDataPort->setText("关闭");
+				this->setWindowTitle(portXYZR.portName() + " openned with success");
+			}
+			else
+			{
+				this->setWindowTitle(portXYZR.portName() + " openned with failure");
+				QMessageBox::information(this, "", portXYZR.portName() + " openned with failure");
+			}
+		}
+	}
+	void pushButtonOpenCtrlPort_clickded()
+	{
+		if (portCtrl.isOpen())
+		{ 
+			portCtrl.close(); 
+			pushButtonOpenCtrlPort->setText("打开"); 
+			this->setWindowTitle(portCtrl.portName() + " closed with success");
+		}
+		else
+		{
+			portCtrl.setPort(QSerialPortInfo(comboBoxCtrlPort->currentText()));
+			portCtrl.setBaudRate(115200);
+			if (portCtrl.open(QIODevice::ReadWrite))
+			{
+				pushButtonOpenCtrlPort->setText("关闭");
+				this->setWindowTitle(portCtrl.portName() + " openned with success");
+			}
+			else
+			{
+				this->setWindowTitle(portCtrl.portName() + " openned with failure");
+				QMessageBox::information(this, "", portCtrl.portName() + " openned with failure");
+			}
+		}
+	}
+	void pushButtonOpenEthernet_clickded()
+	{
+		if (m_pLLT == NULL)
+		{
+			if (initScanDevice())
+			{
+				pushButtonOpenEthernet->setText("退出扫描系统");
+				this->setWindowTitle("Scan device openned with success");
+			}
+			else
+			{
+				QMessageBox::information(this, "", "Scan device openned with failure");
+				this->setWindowTitle("Scan device openned with failure");
+			}
+		}
+		else QApplication::exit();
+	}
+	bool initScanDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
+	{
+		int iRetValue = 0;//buffer
+#if 1
+						  //1.Load LLT.dll
+		bool bLoadError;
+		m_pLLT = new CInterfaceLLT("LLT.dll", &bLoadError);
+		if (bLoadError)
+		{
+			QMessageBox::warning(this, "", "1.Load LLT.dll: Err");
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "1.Load LLT.dll: OK";
+
+		//2.Check LLT.dll's feasibility
+		if (m_pLLT->m_pFunctions->CreateLLTDevice == NULL)
+		{
+			QMessageBox::warning(this, "", "2.Check LLT.dll's feasibility: Err");
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "2.Check LLT.dll's feasibility: OK";
+
+		//3.Create firewire device
+		if (!m_pLLT->CreateLLTDevice(INTF_TYPE_ETHERNET))
+		{
+			QMessageBox::warning(this, "", "3.Create firewire device: Err");
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "3.Create firewire device: OK";
+#endif
+
+#if 1
+		//4.Get available interfaces
+		uint vuiEthernetInterfaces[50];
+		if ((iRetValue = m_pLLT->GetDeviceInterfacesFast(vuiEthernetInterfaces, 50)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", "4.Get available interfaces: Err");
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "4.Get available interfaces: OK and " << iRetValue << " interfaces";
+
+		//5.Set ethernet interface
+		if ((iRetValue = m_pLLT->SetDeviceInterface(vuiEthernetInterfaces[0], 0)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("5.Set ethernet interface: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "5.Set ethernet interface: OK";
+
+		//6.Connect to scanCONTROL-device
+		if ((iRetValue = m_pLLT->Connect()) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("6.Connect to scanCONTROL-device: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "6.Connect to scanCONTROL-device: OK";
+
+		//7.Get scanCONTROL type
+		if ((iRetValue = m_pLLT->GetLLTType(&m_tscanCONTROLType)) < GENERAL_FUNCTION_OK || iRetValue == GENERAL_FUNCTION_DEVICE_NAME_NOT_SUPPORTED)
+		{
+			QMessageBox::warning(this, "", QString("7.Get scanCONTROL type: Err \nError code: ") + aaa::num2string(iRetValue).c_str() + " or can't decode scanCONTROL type");
+			delete m_pLLT;
+			return false;
+		}
+		else if (m_tscanCONTROLType >= scanCONTROL27xx_25 && m_tscanCONTROLType <= scanCONTROL27xx_xxx) cout << endl << "7.Get scanCONTROL type: OK and scanCONTROL27xx";
+		else if (m_tscanCONTROLType >= scanCONTROL26xx_25 && m_tscanCONTROLType <= scanCONTROL26xx_xxx) cout << endl << "7.Get scanCONTROL type: OK and scanCONTROL26xx";
+		else if (m_tscanCONTROLType >= scanCONTROL29xx_25 && m_tscanCONTROLType <= scanCONTROL29xx_xxx) cout << endl << "7.Get scanCONTROL type: OK and scanCONTROL29xx";
+		else
+		{
+			QMessageBox::warning(this, "", QString("7.Get scanCONTROL type: Err and undefined scanCONTROL type"));
+			delete m_pLLT;
+			return false;
+		}
+#endif
+
+#if 1
+		//8.Get available resolutions
+		ulong vdwResolutions[60];
+		if ((iRetValue = m_pLLT->GetResolutions(vdwResolutions, 60)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("8.Get available resolutions: Err \nError code : ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else
+		{
+			cout << endl << "8.Get available resolutions: OK and " << iRetValue << " resolutions";
+			for (int i = 0; i < iRetValue; ++i)
+				cout << ": " << vdwResolutions[i];
+		}
+
+		//9.Set resolution
+		if ((iRetValue = m_pLLT->SetResolution(m_uiResolution = vdwResolutions[0])) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("9.Set resolution: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "9.Set resolution: OK";
+
+		//10.Set trigger
+		if ((iRetValue = m_pLLT->SetFeature(FEATURE_FUNCTION_TRIGGER, 0x00000000)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("10.Set trigger: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "10.Set trigger: OK";
+
+		//11.Set config
+		if ((iRetValue = m_pLLT->SetProfileConfig(PROFILE)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("11.Set config: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "11.Set config: OK";
+
+		//12.Set shuttertime
+		if ((iRetValue = m_pLLT->SetFeature(FEATURE_FUNCTION_SHUTTERTIME, uiShutterTime)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("12.Set shuttertime: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "12.Set shuttertime: OK";
+
+		//13.Set idletime
+		if ((iRetValue = m_pLLT->SetFeature(FEATURE_FUNCTION_IDLETIME, uiIdleTime)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("13.Set idletime: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			delete m_pLLT;
+			return false;
+		}
+		else cout << endl << "13.Set idletime: OK";
+
+		//14.Transfer profiles
+		if ((iRetValue = m_pLLT->TransferProfiles(NORMAL_TRANSFER, true)) < GENERAL_FUNCTION_OK)
+		{
+			QMessageBox::warning(this, "", QString("14.Transfer profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return false;
+		}
+		else cout << endl << "14.Transfer profiles: OK";
+#endif
+
+		return true;
+	}
+
+	void motionCtrl_event(CMDCODE cmdCode, int motorId, int moveDistance, double moveSpeed)
+	{
+		if (!portCtrl.isOpen()) { this->setWindowTitle(portCtrl.portName() + " not opened"); return; }
+
+		int iwrite = 1;
+		//motionCtrol_unlock(false);
+		static int cmdid = 0;
+		portCtrlParams.cmdSended[0] = portCtrlParams.cmdHeader;
+		portCtrlParams.cmdSended[1] = cmdCode;
+		portCtrlParams.cmdSended[10] = ++cmdid;
+		portCtrlParams.cmdSended[11] = 0x0;
+		if (cmdCode == CMD_SJ_GODIST)
+		{
+			portCtrlParams.cmdSended[2] = motorId;
+			*((int*)(portCtrlParams.cmdSended + 3)) = moveDistance * 1000000;
+			*((short*)(portCtrlParams.cmdSended + 7)) = 0x1;
+			*((short*)(portCtrlParams.cmdSended + 8)) = (short)(moveSpeed * 1000);
+		}
+		else if (cmdCode == CMD_SJ_GO_STOP) portCtrlParams.cmdSended[2] = motorId;
+		else if (cmdCode == CMD_SJ_REPEAT_GO) portCtrlParams.cmdSended[2] = motorId;//0x0--start   0x1---stop
+		for (int i = 1; i < 11; ++i) portCtrlParams.cmdSended[11] += portCtrlParams.cmdSended[i];
+		portCtrlParams.hasSendSuccess = false;
+		while (1)
+		{
+			//1.CameraThread: use 1 threads
+			atomic_uchar runState = 0xFE; llong startTime = aaa_ns; llong outTime = 2000000000;
+			portCtrl.write((char*)portCtrlParams.cmdSended, 12);
+			while (1)
+			{
+				if (runState == 0xFF) { this->setWindowTitle(QString("Write ") + aaa::num2string(iwrite).c_str() + " time and receive the reply"); /*motionCtrol_unlock(true);*/ return; }
+				else if (aaa_ns - startTime < outTime) this->setWindowTitle(QString("Writing ") + aaa::num2string(iwrite).c_str() + " time");
+				else break;
+				QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+				if (portCtrlParams.hasSendSuccess == true) runState = 0xFF;
+			}
+			if (++iwrite >= 3) { this->setWindowTitle("Write 3 times and receive no reply"); /*motionCtrol_unlock(true);*/ return; }
+		}
+	}
+
+
 
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
 	{
@@ -826,14 +1080,100 @@ public://Process events
 		QVector<double> vdValueZZ = QVector<double>::fromStdVector(vdValueZ);
 	}
 
-public://DIY code
+public://Interruption events
+	void portXYZR_readyRead()
+	{
+		//1.Readouta ll
+		static queue<uchar> queueXYZR;
+		QByteArray cmd = portCtrl.readAll();
+		for (int i = 0; i < cmd.size(); ++i) queueXYZR.push((uchar)cmd[i]);
 
+		//2.Its following data is useless because of no command header
+		while (queueXYZR.size() > 0 && queueXYZR.front() != 0x57) queueXYZR.pop();
+
+		//3.It cannot be decoded because of intact command
+		if (queueXYZR.size() < 20) return;
+
+		//4.Extract and decode command
+		uchar data[18];
+		uchar checksum = (uchar)0;
+		queueXYZR.pop();
+		for (int i = 0; i < 18; ++i)
+		{
+			data[i] = queueXYZR.front();
+			queueXYZR.pop();
+			checksum += data[i];
+		}
+		uchar trueChecksum = queueXYZR.front();
+		queueXYZR.pop();
+		if (checksum != trueChecksum) return;
+
+		//6.Use command
+		realtimeX = ((int*)(data + 1))[0] / 1000000.f;
+		realtimeY = ((int*)(data + 1))[1] / 1000000.f;
+		realtimeZ = ((int*)(data + 1))[2] / 1000000.f;
+		realtimeR = ((int*)(data + 1))[3] / 1000.f;
+		lineEditXAxis->setText(aaa::num2string(realtimeX, 3).c_str());
+		lineEditYAxis->setText(aaa::num2string(realtimeY, 3).c_str());
+		lineEditZAxis->setText(aaa::num2string(realtimeZ, 3).c_str());
+		lineEditRotate->setText(aaa::num2string(realtimeR, 3).c_str());
+	}
+	void portCtrl_readyRead()
+	{
+		//1.Readout all
+		static queue<uchar> queueCtrl;
+		QByteArray cmd = portCtrl.readAll();
+		for (int i = 0; i < cmd.size(); ++i) queueCtrl.push((uchar)cmd[i]);
+
+		//2.Its following data is useless because of no command header
+		while (queueCtrl.size() > 0 && queueCtrl.front() != 0x53) queueCtrl.pop();
+
+		//3.It cannot be decoded because of intact command
+		if (queueCtrl.size() < 12) return;
+
+		//4.Extract and decode command
+		uchar data[10];
+		uchar checksum = (uchar)0;
+		queueCtrl.pop();
+		for (int i = 0; i < 10; ++i)
+		{
+			data[i] = queueCtrl.front();
+			queueCtrl.pop();
+			checksum += data[i];
+		}
+		uchar trueChecksum = queueCtrl.front();
+		queueCtrl.pop();
+		if (checksum == trueChecksum && data[0] == portCtrlParams.cmdSended[1]) portCtrlParams.hasSendSuccess = true;
+	}
+	void timerContinousScan_timeout()
+	{}
+
+
+
+public://DIY code
+	typedef struct PortCtrlParams
+	{
+		//Interactive params
+		atomic_bool hasExitThread; //For thread that cannot exit automatically
+		atomic_bool hasSendSuccess;//For SerialPortMaster
+
+		//Input Params
+		uchar cmdHeader = 0x53;
+		uchar cmdSended[256];//cmdHeader cmdLength ... checksum
+		uchar cmdReceiced[256];//not need mutex (refer to timerMain comment)
+
+		//Output Params
+
+		//Buffer params	
+
+		PortCtrlParams() { hasExitThread = false; hasSendSuccess = false; }
+	}PortCtrlParams; PortCtrlParams portCtrlParams;
+	
 public://DIY UI
 
 public://UI members
 
 public://Data members
-	QTimer *timerMain = new QTimer(this); //Responsible with commincation with other timers and threads (varibles shared with other timers or/and main thread don't need mutex because of interruption call, and others shared with std::thread do because of different threads)
 
 public://Init UI and Data
 	DemoCQScan(QWidget *parent = 0) : QWidget(parent)
@@ -844,21 +1184,26 @@ public://Init UI and Data
 		this->setMinimumSize(QSize(800, 600));
 		this->setFont(QFont("", 20, QFont::Thin));
 		{
+			connect(&portXYZR, &QSerialPort::readyRead, this, &DemoCQScan::portXYZR_readyRead);
+			connect(&portCtrl, &QSerialPort::readyRead, this, &DemoCQScan::portCtrl_readyRead);
+			connect(timerContinousScan, &QTimer::timeout, this, &DemoCQScan::timerContinousScan_timeout);
+
 			db.setDatabaseName("./../data/mysqlite.db");
 			if (!db.open()) { QMessageBox::information(this, "", "失败打开数据库, 错信息如下:\n" + db.lastError().text());  QApplication::exit(); }
 		}
 
-		//1.Group1 setting
+		//1.Group1 setting  ---  TabPage layout
 		gridLayoutWidgetMain->addWidget(tabWidgetMain);
 		tabWidgetMain->addTab(widgetScanInitial, "采样设置");
 		tabWidgetMain->addTab(widgetScanAutomatic, "自动扫描"); 
 		tabWidgetMain->addTab(widgetScanHistroty, "历史记录");
 		{	
 			widgetScanHistroty->setFont(QFont("", 10, QFont::Thin));
+			tabWidgetMain->setTabPosition(QTabWidget::West);
 			connect(tabWidgetMain, &QTabWidget::tabBarClicked, [this](int index = 2)->void {if (index == 2) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }});
 		}
 
-		//2.Group2 setting
+		//2.Group2 setting  ---  SampleScan layout
 		gridLayoutScanSetting->addWidget(chartViewSample, 0, 0, 1, 4);
 		gridLayoutScanSetting->addWidget(groupBoxPortSetting, 1, 0, 1, 1);
 		gridLayoutScanSetting->addWidget(groupBoxCurrentPose, 1, 1, 1, 1);
@@ -869,7 +1214,7 @@ public://Init UI and Data
 		gridLayoutScanSetting->setColumnStretch(2, 2);
 		gridLayoutScanSetting->setColumnStretch(3, 1);
 
-		//3.Group3 setting
+		//3.Group3 setting  ---  AutoScan layout
 		gridLayoutScanAutomatic->addWidget(chartViewAutomatic, 0, 0, 1, 3);
 		gridLayoutScanAutomatic->addWidget(new QLabel("扫描轴", comboBoxScanAxis), 1, 0, 1, 1);
 		gridLayoutScanAutomatic->addWidget(comboBoxScanAxis, 1, 1, 1, 1);
@@ -893,7 +1238,7 @@ public://Init UI and Data
 		gridLayoutScanAutomatic->setColumnStretch(1, 1);
 		gridLayoutScanAutomatic->setColumnStretch(2, 1);
 
-		//4.Group4 setting
+		//4.Group4 setting  ---  HistoryScan layout 
 		gridLayoutScanHistroty->addWidget(chartViewHistory, 0, 0, 1, 2);
 		gridLayoutScanHistroty->addWidget(tableViewCatalog, 1, 0, 1, 1);
 		gridLayoutScanHistroty->addWidget(tableViewDetails, 1, 1, 1, 1); 
@@ -922,7 +1267,7 @@ public://Init UI and Data
 		gridLayoutScanHistroty->setColumnStretch(0, 3);
 		gridLayoutScanHistroty->setColumnStretch(1, 2);
 
-		//5.Group5 setting
+		//5.Group5 setting  ---  PortManagement layout
 		gridLayoutPortSetting->addWidget(new QLabel("数据串口", groupBoxPortSetting), 0, 0, 1, 1);
 		gridLayoutPortSetting->addWidget(comboBoxDataPort, 0, 1, 1, 1);
 		gridLayoutPortSetting->addWidget(pushButtonOpenDataPort, 0, 2, 1, 1);
@@ -931,11 +1276,15 @@ public://Init UI and Data
 		gridLayoutPortSetting->addWidget(pushButtonOpenCtrlPort, 1, 2, 1, 1);
 		gridLayoutPortSetting->addWidget(pushButtonOpenEthernet, 2, 0, 1, 3);
 		{
+			QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
 			for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxDataPort->addItem(listSerialPortInfo[i].portName());
 			for (int i = 0; i < listSerialPortInfo.size(); ++i) comboBoxCtrlPort->addItem(listSerialPortInfo[i].portName());
+			connect(pushButtonOpenDataPort, &QPushButton::clicked, this, &DemoCQScan::pushButtonOpenDataPort_clickded);
+			connect(pushButtonOpenCtrlPort, &QPushButton::clicked, this, &DemoCQScan::pushButtonOpenCtrlPort_clickded);
+			connect(pushButtonOpenEthernet, &QPushButton::clicked, this, &DemoCQScan::pushButtonOpenEthernet_clickded);
 		}
 
-		//6.Group6 setting
+		//6.Group6 setting  ---  RealtimePose layout
 		gridLayoutCurrentPose->addWidget(new QLabel("X 坐标", groupBoxCurrentPose), 0, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
 		gridLayoutCurrentPose->addWidget(new QLabel("Y 坐标", groupBoxCurrentPose), 1, 0, 1, 1);
@@ -945,7 +1294,7 @@ public://Init UI and Data
 		gridLayoutCurrentPose->addWidget(new QLabel("旋转角", groupBoxCurrentPose), 3, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1);
 
-		//7.Group7 setting
+		//7.Group7 setting  ---  PoseSetting layout
 		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonMoveLeft, 0, 1, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonMoveForward, 1, 0, 1, 1);
@@ -954,16 +1303,37 @@ public://Init UI and Data
 		gridLayoutPoseSetting->addWidget(pushButtonMoveDown, 2, 1, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateClockwise, 3, 0, 1, 1);
 		gridLayoutPoseSetting->addWidget(pushButtonRotateAntiClockwise, 3, 1, 1, 1);
+		{
+			connect(pushButtonMoveRight, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x0, 200, 5); });
+			connect(pushButtonMoveLeft, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x0, -200, 5); });
+			connect(pushButtonMoveForward, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x1, 200, 5); });
+			connect(pushButtonMoveBackward, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x1, -200, 5); });
+			connect(pushButtonMoveUp, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x2, 200, 5); });
+			connect(pushButtonMoveDown, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x2, -200, 5); });
+			connect(pushButtonRotateClockwise, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x3, -2, 0.06); });
+			connect(pushButtonRotateAntiClockwise, &QPushButton::pressed, [this]()->void {motionCtrl_event(CMD_SJ_GODIST, 0x3, 2, 0.06); });
 
-		//8.Group8 setting
+			connect(pushButtonMoveRight, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x0, 0xFF, 0xFF); });
+			connect(pushButtonMoveLeft, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x0, 0xFF, 0xFF); });
+			connect(pushButtonMoveForward, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x1, 0xFF, 0xFF); });
+			connect(pushButtonMoveBackward, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x1, 0xFF, 0xFF); });
+			connect(pushButtonMoveUp, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x2, 0xFF, 0xFF); });
+			connect(pushButtonMoveDown, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x2, 0xFF, 0xFF); });
+			connect(pushButtonRotateClockwise, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x3, 0xFF, 0xFF); });
+			connect(pushButtonRotateAntiClockwise, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_SJ_GO_STOP, 0x3, 0xFF, 0xFF); });
+		}
+
+		//8.Group8 setting  ---  SampleReset layout
 		gridLayoutGroupSampleScan->addWidget(pushButtonSample, 0, 0, 1, 1);
 		gridLayoutGroupSampleScan->addWidget(pushButtonReset, 1, 0, 1, 1);
 		{
 			pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 			pushButtonSample->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+			connect(pushButtonReset, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
 		}
 
 	}
+
 public://UI members
 	QGridLayout *gridLayoutWidgetMain = new QGridLayout(this);
 	QTabWidget *tabWidgetMain = new QTabWidget(this);
@@ -1018,8 +1388,19 @@ public://UI members
 	QPushButton *pushButtonSample = new QPushButton("采样", groupBoxSampleScan);
 	QPushButton *pushButtonReset = new QPushButton("重置", groupBoxSampleScan);
 
-public://Data members	
-	QList<QSerialPortInfo> listSerialPortInfo = QSerialPortInfo::availablePorts();
+public://Data members
+	QSerialPort portXYZR;
+	QSerialPort portCtrl;
+	float realtimeX = FLT_MIN;
+	float realtimeY = FLT_MIN;
+	float realtimeZ = FLT_MIN;
+	float realtimeR = FLT_MIN;
+
+	CInterfaceLLT *m_pLLT = NULL;
+	TScannerType m_tscanCONTROLType;
+	uint m_uiResolution = 0;
+	QTimer *timerContinousScan = new QTimer(this);
+
 	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "connect_name_of_sqlite");
 	QSqlTableModel *tableModelCatalog = new QSqlTableModel(this, db);
 	QSqlQueryModel *queryModelDetails = new QSqlQueryModel(this);	
