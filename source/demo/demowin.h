@@ -1192,39 +1192,39 @@ public://Init UI and Data
 			if (!db.open()) { QMessageBox::information(this, "", "失败打开数据库, 错信息如下:\n" + db.lastError().text());  QApplication::exit(); }
 		}
 
-		//1.Group1 setting  ---  TabPage layout
-		gridLayoutWidgetMain->addWidget(tabWidgetMain);
-		tabWidgetMain->addTab(widgetScanInitial, "采样设置");
-		tabWidgetMain->addTab(widgetScanAutomatic, "自动扫描"); 
-		tabWidgetMain->addTab(widgetScanHistroty, "历史记录");
+		//1.Group1 setting  ---  MainWindow layout
+		gridLayoutWidgetMain->addWidget(chartView, 0, 0, 1, 1);
+		gridLayoutWidgetMain->addWidget(tabWidget, 1, 0, 1, 1);
+		tabWidget->addTab(widgetScanInitial, "采样设置");
+		tabWidget->addTab(widgetScanAutomatic, "自动扫描"); 
+		tabWidget->addTab(widgetScanHistroty, "历史记录");
 		{	
 			widgetScanHistroty->setFont(QFont("", 10, QFont::Thin));
-			tabWidgetMain->setTabPosition(QTabWidget::West);
-			connect(tabWidgetMain, &QTabWidget::tabBarClicked, [this](int index = 2)->void {if (index == 2) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }});
+			connect(tabWidget, &QTabWidget::tabBarClicked, [this](int index = 2)->void {if (index == 2) if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }});
 		}
+		gridLayoutWidgetMain->setRowStretch(0, 1);
+		gridLayoutWidgetMain->setRowStretch(1, 0);
 
 		//2.Group2 setting  ---  SampleScan layout
-		gridLayoutScanSetting->addWidget(chartViewSample, 0, 0, 1, 4);
-		gridLayoutScanSetting->addWidget(groupBoxPortSetting, 1, 0, 1, 1);
-		gridLayoutScanSetting->addWidget(groupBoxCurrentPose, 1, 1, 1, 1);
-		gridLayoutScanSetting->addWidget(groupBoxPoseSetting, 1, 2, 1, 1);
-		gridLayoutScanSetting->addWidget(groupBoxSampleScan, 1, 3, 1, 1);
-		gridLayoutScanSetting->setColumnStretch(0, 0);
-		gridLayoutScanSetting->setColumnStretch(1, 2);
-		gridLayoutScanSetting->setColumnStretch(2, 2);
-		gridLayoutScanSetting->setColumnStretch(3, 1);
+		gridLayoutScanInitial->addWidget(groupBoxPortSetting, 0, 0, 1, 1);
+		gridLayoutScanInitial->addWidget(groupBoxCurrentPose, 0, 1, 1, 1);
+		gridLayoutScanInitial->addWidget(groupBoxPoseSetting, 0, 2, 1, 1);
+		gridLayoutScanInitial->addWidget(groupBoxSampleScan, 0, 3, 1, 1);
+		gridLayoutScanInitial->setColumnStretch(0, 0);
+		gridLayoutScanInitial->setColumnStretch(1, 2);
+		gridLayoutScanInitial->setColumnStretch(2, 2);
+		gridLayoutScanInitial->setColumnStretch(3, 1);
 
 		//3.Group3 setting  ---  AutoScan layout
-		gridLayoutScanAutomatic->addWidget(chartViewAutomatic, 0, 0, 1, 3);
-		gridLayoutScanAutomatic->addWidget(new QLabel("扫描轴", comboBoxScanAxis), 1, 0, 1, 1);
-		gridLayoutScanAutomatic->addWidget(comboBoxScanAxis, 1, 1, 1, 1);
-		gridLayoutScanAutomatic->addWidget(new QLabel("扫描速度", widgetScanAutomatic), 2, 0, 1, 1);
-		gridLayoutScanAutomatic->addWidget(doubleSpinBoxScanSpeed, 2, 1, 1, 1);
-		gridLayoutScanAutomatic->addWidget(new QLabel("扫描距离", widgetScanAutomatic), 3, 0, 1, 1);
-		gridLayoutScanAutomatic->addWidget(spinBoxScanDistance, 3, 1, 1, 1);
-		gridLayoutScanAutomatic->addWidget(new QLabel("扫描步长", widgetScanAutomatic), 4, 0, 1, 1);
-		gridLayoutScanAutomatic->addWidget(comboBoxScanStep, 4, 1, 1, 1);
-		gridLayoutScanAutomatic->addWidget(pushButtonAutomatic, 1, 2, 4, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描轴", comboBoxScanAxis), 0, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(comboBoxScanAxis, 0, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描速度", widgetScanAutomatic), 1, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(doubleSpinBoxScanSpeed, 1, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描距离", widgetScanAutomatic), 2, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(spinBoxScanDistance, 2, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("扫描步长", widgetScanAutomatic), 3, 0, 1, 1);
+		gridLayoutScanAutomatic->addWidget(comboBoxScanStep, 3, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(pushButtonAutomatic, 0, 2, 4, 1);
 		{
 			comboBoxScanAxis->addItems(QStringList() << "X 轴" << "Y 轴");
 			doubleSpinBoxScanSpeed->setMinimum(1.0); 
@@ -1239,9 +1239,8 @@ public://Init UI and Data
 		gridLayoutScanAutomatic->setColumnStretch(2, 1);
 
 		//4.Group4 setting  ---  HistoryScan layout 
-		gridLayoutScanHistroty->addWidget(chartViewHistory, 0, 0, 1, 2);
-		gridLayoutScanHistroty->addWidget(tableViewCatalog, 1, 0, 1, 1);
-		gridLayoutScanHistroty->addWidget(tableViewDetails, 1, 1, 1, 1); 
+		gridLayoutScanHistroty->addWidget(tableViewCatalog, 0, 0, 1, 1);
+		gridLayoutScanHistroty->addWidget(tableViewDetails, 0, 1, 1, 1); 
 		{
 			tableViewCatalog->setSelectionBehavior(QAbstractItemView::SelectRows);
 			tableViewDetails->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -1262,8 +1261,6 @@ public://Init UI and Data
 
 			queryModelDetails->sort(0, Qt::DescendingOrder);
 		}
-		gridLayoutScanHistroty->setRowStretch(0, 4);
-		gridLayoutScanHistroty->setRowStretch(1, 1);
 		gridLayoutScanHistroty->setColumnStretch(0, 3);
 		gridLayoutScanHistroty->setColumnStretch(1, 2);
 
@@ -1336,28 +1333,26 @@ public://Init UI and Data
 
 public://UI members
 	QGridLayout *gridLayoutWidgetMain = new QGridLayout(this);
-	QTabWidget *tabWidgetMain = new QTabWidget(this);
-	QWidget *widgetScanInitial = new QWidget(tabWidgetMain);
-	QWidget *widgetScanAutomatic = new QWidget(tabWidgetMain);
-	QWidget *widgetScanHistroty = new QWidget(tabWidgetMain);
+	QChartView *chartView = new QChartView(this);
+	QTabWidget *tabWidget = new QTabWidget(this);
+	QWidget *widgetScanInitial = new QWidget(tabWidget);
+	QWidget *widgetScanAutomatic = new QWidget(tabWidget);
+	QWidget *widgetScanHistroty = new QWidget(tabWidget);
 
-	QGridLayout *gridLayoutScanSetting = new QGridLayout(widgetScanInitial);
-	QChartView *chartViewSample = new QChartView(widgetScanInitial);
+	QGridLayout *gridLayoutScanInitial = new QGridLayout(widgetScanInitial);
 	QGroupBox *groupBoxPortSetting = new QGroupBox("通信设置", widgetScanInitial);
 	QGroupBox *groupBoxCurrentPose = new QGroupBox("当前姿态", widgetScanInitial);
 	QGroupBox *groupBoxPoseSetting = new QGroupBox("姿态设置", widgetScanInitial);
 	QGroupBox *groupBoxSampleScan = new QGroupBox("采样重置", widgetScanInitial);
 
 	QGridLayout *gridLayoutScanAutomatic = new QGridLayout(widgetScanAutomatic);
-	QChartView *chartViewAutomatic = new QChartView(widgetScanAutomatic);
 	QComboBox *comboBoxScanAxis = new QComboBox(widgetScanAutomatic);
 	QDoubleSpinBox *doubleSpinBoxScanSpeed = new QDoubleSpinBox(widgetScanAutomatic);
 	QSpinBox *spinBoxScanDistance = new QSpinBox(widgetScanAutomatic);
 	QComboBox *comboBoxScanStep = new QComboBox(widgetScanAutomatic);
-	QPushButton *pushButtonAutomatic = new QPushButton("一键扫描", groupBoxSampleScan);
+	QPushButton *pushButtonAutomatic = new QPushButton("一键扫描", widgetScanAutomatic);
 
 	QGridLayout *gridLayoutScanHistroty = new QGridLayout(widgetScanHistroty);
-	QChartView *chartViewHistory = new QChartView(widgetScanHistroty);
 	QTableView *tableViewCatalog = new QTableView(widgetScanHistroty);
 	QTableView *tableViewDetails = new QTableView(widgetScanHistroty);
 
