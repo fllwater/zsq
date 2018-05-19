@@ -1079,12 +1079,21 @@ public://User events: PortManagement
 		query.addBindValue(comboBoxScanStep->currentText().toInt());
 		query.exec();
 
+		motionCtrl_event(CMD_SJ_GODIST, comboBoxScanAxis->currentIndex() == 0 ? 0x0 : 0x1, spinBoxScanDistance->value(), doubleSpinBoxScanSpeed->value());
+
 		chart->removeAllSeries();
 		timerContinousScan->start();
 		scanMode = 2;
 		while (1)
 		{
-			if (scanMode == 0) { pushButtonSample->setEnabled(true); timerContinousScan->stop(); chart->removeAllSeries(); break; }
+			if (scanMode == 0) 
+			{ 
+				pushButtonSample->setEnabled(true); 
+				timerContinousScan->stop(); 
+				chart->removeAllSeries(); 
+				motionCtrl_event(CMD_SJ_GO_STOP, comboBoxScanAxis->currentIndex() == 0 ? 0x0 : 0x1, 0xFF, 0xFF);
+				break; 
+			}
 			QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
 		}
 	}
