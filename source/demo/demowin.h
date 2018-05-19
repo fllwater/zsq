@@ -842,20 +842,12 @@ public://User events: PortManagement
 	}
 	void pushButtonOpenEthernet_clickded()
 	{
-		if (m_pLLT == NULL)
-		{
-			if (initScanDevice())
-			{
-				pushButtonOpenEthernet->setText("退出扫描系统");
-				this->setWindowTitle("Scan device openned with success");
-			}
-			else
-			{
-				QMessageBox::information(this, "", "Scan device openned with failure");
-				this->setWindowTitle("Scan device openned with failure");
-			}
-		}
-		else QApplication::exit();
+		if (pushButtonOpenEthernet->text() == "退出扫描系统") QApplication::exit();
+
+		if (initScanDevice()) { this->setWindowTitle("Scan device openned with success"); timerContinousScan->start(); scanMode = 0; }
+		else { this->setWindowTitle("Scan device openned with failure"); QMessageBox::information(this, "", "Scan device openned with failure"); }
+
+		pushButtonOpenEthernet->setText("退出扫描系统");
 	}
 	bool initScanDevice(uint uiShutterTime = 100, uint uiIdleTime = 900)
 	{
@@ -1052,10 +1044,22 @@ public://User events: PortManagement
 
 	void tabWidget_tabBarClicked(int index)
 	{
-		if (index != 2) return;
-		chart->removeAllSeries();
-		if (timerContinousScan->isActive()) timerContinousScan->stop();
-		if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
+		if (index == 0)
+		{
+			chart->removeAllSeries();
+			if (timerContinousScan->isActive() == false) { timerContinousScan->start(); scanMode = 0; }
+		}
+		else if (index == 1)
+		{
+			chart->removeAllSeries();
+			if (timerContinousScan->isActive()) timerContinousScan->stop();
+		}
+		else if (index == 2)
+		{
+			chart->removeAllSeries();
+			if (timerContinousScan->isActive()) timerContinousScan->stop();
+			if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
+		}
 	}
 	void tableViewCatalog_clicked(QModelIndex modelIndex)
 	{
@@ -1151,7 +1155,84 @@ public://Interruption events
 		if (checksum == trueChecksum && data[0] == portCtrlParams.cmdSended[1]) portCtrlParams.hasSendSuccess = true;
 	}
 	void timerContinousScan_timeout()
-	{}
+	{
+		cout << endl << "timer is running"; return;
+
+		//0.Define variables
+		int iRetValue = 0;
+		vector<double> vdValueX(m_uiResolution);
+		vector<double> vdValueZ(m_uiResolution);
+		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
+
+		//1.Get profiles
+		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
+		{
+			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "1.Get profiles: OK";
+
+		//2.Convert profiles
+		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
+		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
+		{
+			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "2.Convert profiles: OK";
+
+		//3.Scan mode: display or sample mode
+		if (scanMode == 0 || scanMode == 1)
+		{
+			QSplineSeries *series = new QSplineSeries();
+			for (uint i = 0; i < vdValueX.size(); ++i) series->append(vdValueX[i], vdValueZ[i]);
+			chart->removeAllSeries();
+			chart->addSeries(series);
+			chart->legend()->setVisible(false);
+			chart->createDefaultAxes();
+
+			//Display mode
+			if (scanMode == 0) return;
+			
+			//Sample mode
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, scanang, xdata, zdata) values (?, ?, ?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(scanid++);
+			query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? realtimeX : realtimeY);
+			query.addBindValue(realtimeR);
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
+			query.exec();
+
+			scanMode == 0;//convert to display mode
+			this->setWindowTitle("Sample with success");
+			return;
+		}
+
+		//4.Scan mode: acquisition mode
+		if ((comboBoxScanAxis->currentIndex() == 0 && __abs(lasttimeX - realtimeX) > comboBoxScanStep->currentText().toInt()) || (comboBoxScanAxis->currentIndex() == 1 && __abs(lasttimeY - realtimeY) > comboBoxScanStep->currentText().toInt()))
+		{
+
+			QSqlQuery query(db);
+			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, scanang, xdata, zdata) values (?, ?, ?, ?, ?, ?)");
+			query.addBindValue(timeid);
+			query.addBindValue(scanid++);
+			query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? realtimeX : realtimeY);
+			query.addBindValue(realtimeR);
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
+			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
+			query.exec();
+
+			lasttimeX = realtimeX;
+			lasttimeY = realtimeY;
+			lasttimeR = realtimeR;
+			this->setWindowTitle(QString("saved=") + aaa::num2string(scanid).c_str());
+		}
+
+		if ((comboBoxScanAxis->currentIndex() == 0 && __abs(realtimeX - initialX) > __abs(spinBoxDistance->value())) ||
+			(comboBoxScanAxis->currentIndex() == 1 && __abs(realtimeY - initialY) > __abs(spinBoxDistance->value())));// startOrStopScan(true);
+	}
 
 public://DIY code
 	typedef struct PortCtrlParams
@@ -1391,15 +1472,18 @@ public://UI members
 public://Data members
 	QSerialPort portXYZR;
 	QSerialPort portCtrl;
-	float realtimeX = FLT_MIN;
-	float realtimeY = FLT_MIN;
-	float realtimeZ = FLT_MIN;
-	float realtimeR = FLT_MIN;
+	float realtimeX = FLT_MIN, lasttimeX, initialX;
+	float realtimeY = FLT_MIN, lasttimeY, initialY;
+	float realtimeZ = FLT_MIN, lasttimeZ, initialZ;
+	float realtimeR = FLT_MIN, lasttimeR, initialR;
 
 	CInterfaceLLT *m_pLLT = NULL;
 	TScannerType m_tscanCONTROLType;
 	uint m_uiResolution = 0;
 	QTimer *timerContinousScan = new QTimer(this);
+	int scanMode = 0;
+	long timeid = -1;
+	long scanid = -1;
 
 	QChart *chart = new QChart();
 
