@@ -1042,6 +1042,53 @@ public://User events: PortManagement
 		}
 	}
 
+	void pushButtonSample_clicked()
+	{
+		pushButtonSample->setEnabled(false);
+		timeid = time(0);
+		QSqlQuery query(db);
+		query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
+		query.addBindValue(timeid);
+		query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? "X" : "Y");
+		query.addBindValue(spinBoxScanDistance->value());
+		query.addBindValue(comboBoxScanStep->currentText().toInt());
+		query.exec();
+
+		timerContinousScan->start(); 
+		scanMode = 1;
+		while (1)
+		{
+			if (scanMode == 0) { pushButtonSample->setEnabled(true); break; }
+			QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+		}	
+	}
+	void pushButtonAutomatic_clicked()
+	{
+		pushButtonAutomatic->setEnabled(false);
+		timeid = time(0);
+		scanid = 0;
+		lasttimeX = initialX = realtimeX;
+		lasttimeY = initialY = realtimeY;
+		lasttimeZ = initialZ = realtimeZ;
+		lasttimeR = initialR = realtimeR;
+		QSqlQuery query(db);
+		query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
+		query.addBindValue(timeid);
+		query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? "X" : "Y");
+		query.addBindValue(spinBoxScanDistance->value());
+		query.addBindValue(comboBoxScanStep->currentText().toInt());
+		query.exec();
+
+		chart->removeAllSeries();
+		timerContinousScan->start();
+		scanMode = 2;
+		while (1)
+		{
+			if (scanMode == 0) { pushButtonSample->setEnabled(true); timerContinousScan->stop(); chart->removeAllSeries(); break; }
+			QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+		}
+	}
+
 	void tabWidget_tabBarClicked(int index)
 	{
 		if (index == 0)
@@ -1094,7 +1141,7 @@ public://Interruption events
 	{
 		//1.Readouta ll
 		static queue<uchar> queueXYZR;
-		QByteArray cmd = portCtrl.readAll();
+		QByteArray cmd = portXYZR.readAll();
 		for (int i = 0; i < cmd.size(); ++i) queueXYZR.push((uchar)cmd[i]);
 
 		//2.Its following data is useless because of no command header
@@ -1198,15 +1245,16 @@ public://Interruption events
 			QSqlQuery query(db);
 			query.prepare("insert into tb_scan_details (timeid, scanid, scanpos, scanang, xdata, zdata) values (?, ?, ?, ?, ?, ?)");
 			query.addBindValue(timeid);
-			query.addBindValue(scanid++);
+			query.addBindValue(0);//only do once
 			query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? realtimeX : realtimeY);
 			query.addBindValue(realtimeR);
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueX[0]), (int)vdValueX.size() * sizeof(double)));
 			query.addBindValue(QByteArray::fromRawData((char*)(&vdValueZ[0]), (int)vdValueZ.size() * sizeof(double)));
 			query.exec();
 
-			scanMode == 0;//convert to display mode
-			this->setWindowTitle("Sample with success");
+			scanMode = 0;//convert to display mode
+			static int s = 0;
+			this->setWindowTitle(QString("Sample with success: ") + aaa::num2string(s).c_str());
 			return;
 		}
 
@@ -1230,8 +1278,8 @@ public://Interruption events
 			this->setWindowTitle(QString("saved=") + aaa::num2string(scanid).c_str());
 		}
 
-		if ((comboBoxScanAxis->currentIndex() == 0 && __abs(realtimeX - initialX) > __abs(spinBoxDistance->value())) ||
-			(comboBoxScanAxis->currentIndex() == 1 && __abs(realtimeY - initialY) > __abs(spinBoxDistance->value())));// startOrStopScan(true);
+		if ((comboBoxScanAxis->currentIndex() == 0 && __abs(realtimeX - initialX) > __abs(spinBoxScanDistance->value())) ||
+			(comboBoxScanAxis->currentIndex() == 1 && __abs(realtimeY - initialY) > __abs(spinBoxScanDistance->value()))) scanMode = 0;
 	}
 
 public://DIY code
@@ -1319,6 +1367,7 @@ public://Init UI and Data
 			spinBoxScanDistance->setMinimum(-100);
 			comboBoxScanStep->addItems(QStringList() << "2" << "5" << "10");
 			pushButtonAutomatic->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
+			connect(pushButtonAutomatic, &QPushButton::clicked, this, &DemoCQScan::pushButtonAutomatic_clicked);
 		}
 		gridLayoutScanAutomatic->setColumnStretch(0, 0);
 		gridLayoutScanAutomatic->setColumnStretch(1, 1);
@@ -1412,7 +1461,8 @@ public://Init UI and Data
 		{
 			pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 			pushButtonSample->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
-			connect(pushButtonReset, &QPushButton::released, [this]()->void {motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
+			connect(pushButtonSample, &QPushButton::clicked, this, &DemoCQScan::pushButtonSample_clicked);
+			connect(pushButtonReset, &QPushButton::click, [this]()->void { motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
 		}
 
 	}
@@ -1470,20 +1520,20 @@ public://UI members
 	QPushButton *pushButtonReset = new QPushButton("重置", groupBoxSampleScan);
 
 public://Data members
-	QSerialPort portXYZR;
-	QSerialPort portCtrl;
-	float realtimeX = FLT_MIN, lasttimeX, initialX;
-	float realtimeY = FLT_MIN, lasttimeY, initialY;
-	float realtimeZ = FLT_MIN, lasttimeZ, initialZ;
-	float realtimeR = FLT_MIN, lasttimeR, initialR;
+	QSerialPort portXYZR;//Used by: pushButtonOpenDataPort_clickded, portXYZR_readyRead
+	QSerialPort portCtrl;//Used by: pushButtonOpenCtrlPort_clickded, portXYZR_readyRead, motionCtrl_event
+	float realtimeX, lasttimeX, initialX;//Used by: portXYZR_readyRead, pushButtonAutomatic_clicked, timerContinousScan_timeout
+	float realtimeY, lasttimeY, initialY;//Used by: portXYZR_readyRead, pushButtonAutomatic_clicked, timerContinousScan_timeout
+	float realtimeZ, lasttimeZ, initialZ;//Used by: portXYZR_readyRead, pushButtonAutomatic_clicked, timerContinousScan_timeout
+	float realtimeR, lasttimeR, initialR;//Used by: portXYZR_readyRead, pushButtonAutomatic_clicked, timerContinousScan_timeout
+	long timeid;//Used by: pushButtonSample_clicked, pushButtonAutomatic_clicked, timerContinousScan_timeout
+	long scanid;//Used by: pushButtonAutomatic_clicked, timerContinousScan_timeout
 
-	CInterfaceLLT *m_pLLT = NULL;
-	TScannerType m_tscanCONTROLType;
-	uint m_uiResolution = 0;
+	CInterfaceLLT *m_pLLT = NULL;//After being initialized by initScanDevice, used by timerContinousScan_timeout
+	TScannerType m_tscanCONTROLType;//After being initialized by initScanDevice, used by timerContinousScan_timeout
+	uint m_uiResolution;//After being initialized by initScanDevice, used by timerContinousScan_timeout
 	QTimer *timerContinousScan = new QTimer(this);
-	int scanMode = 0;
-	long timeid = -1;
-	long scanid = -1;
+	int scanMode;//Used by: pushButtonOpenEthernet_clickded, tabWidget_tabBarClicked, pushButtonSample_clicked, pushButtonAutomatic_clicked, timerContinousScan_timeout
 
 	QChart *chart = new QChart();
 
