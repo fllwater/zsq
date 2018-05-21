@@ -1,4 +1,5 @@
 #include "base/azz.h"
+using namespace QtDataVisualization;
 
 #ifndef __windowaaa_h__
 #define __windowaaa_h__
