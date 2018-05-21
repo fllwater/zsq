@@ -1471,7 +1471,7 @@ public://Init UI and Data
 			pushButtonReset->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 			pushButtonSample->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred));
 			connect(pushButtonSample, &QPushButton::clicked, this, &DemoCQScan::pushButtonSample_clicked);
-			connect(pushButtonReset, &QPushButton::click, [this]()->void { motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
+			connect(pushButtonReset, &QPushButton::clicked, [this]()->void { motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
 		}
 
 	}
