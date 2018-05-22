@@ -3,7 +3,8 @@
 #include "qcustomplot.h"
 #include "CommDef.h"
 #pragma execution_character_set("utf-8")
-
+#define USE_SIMULATION 1
+int timeout_for_simulation = 500;
 
 #ifndef __demowin_h__
 #define __demowin_h__
@@ -63,8 +64,13 @@ public://User events: PortManagement
 	{
 		if (pushButtonOpenEthernet->text() == "退出扫描系统") QApplication::exit();
 
-		if (initScanDevice()) { this->setWindowTitle("Scan device openned with success"); timerContinousScan->start(); scanMode = 0; }
+#if USE_SIMULATION
+		m_pLLT = (CInterfaceLLT*)1;
+		if (1) { this->setWindowTitle("Scan device openned with success"); timerContinousScan->start(timeout_for_simulation); scanMode = 0; }
+#else
+		if (initScanDevice()) { this->setWindowTitle("Scan device openned with success"); timerContinousScan->start(timeout_for_simulation); scanMode = 0; }
 		else { this->setWindowTitle("Scan device openned with failure"); QMessageBox::information(this, "", "Scan device openned with failure"); }
+#endif
 
 		pushButtonOpenEthernet->setText("退出扫描系统");
 	}
@@ -224,7 +230,7 @@ public://User events: PortManagement
 
 	void motionCtrl_event(CMDCODE cmdCode, int motorId, int moveDistance, double moveSpeed)
 	{
-		if (!portCtrl.isOpen()) { this->setWindowTitle(portCtrl.portName() + " not opened"); return; }
+		if (!portCtrl.isOpen()) { this->setWindowTitle("portCtrl not opened"); QMessageBox::information(this, "", "portCtrl not opened"); return; }
 
 		int iwrite = 1;
 		//motionCtrol_unlock(false);
@@ -263,6 +269,8 @@ public://User events: PortManagement
 
 	void pushButtonSample_clicked()
 	{
+		if (!portCtrl.isOpen() || !portXYZR.isOpen() || !m_pLLT) { this->setWindowTitle("portCtrl or portXYZR or portScan not opened"); QMessageBox::information(this, "", "portCtrl or XYZR or portScan not opened"); return; }
+
 		pushButtonSample->setEnabled(false);
 		timeid = time(0);
 		QSqlQuery query(db);
@@ -273,7 +281,7 @@ public://User events: PortManagement
 		query.addBindValue(comboBoxScanStep->currentText().toInt());
 		query.exec();
 
-		timerContinousScan->start(); 
+		timerContinousScan->start(timeout_for_simulation); 
 		scanMode = 1;
 		while (1)
 		{
@@ -283,13 +291,22 @@ public://User events: PortManagement
 	}
 	void pushButtonAutomatic_clicked()
 	{
+		if (!portCtrl.isOpen() || !portXYZR.isOpen() || !m_pLLT) { this->setWindowTitle("portCtrl or portXYZR or portScan not opened"); QMessageBox::information(this, "", "portCtrl or XYZR or portScan not opened"); return; }
+
 		pushButtonAutomatic->setEnabled(false);
 		timeid = time(0);
 		scanid = 0;
+#if USE_SIMULATION
+		lasttimeX = initialX = realtimeX = 0;
+		lasttimeY = initialY = realtimeY = 0;
+		lasttimeZ = initialZ = realtimeZ = 0;
+		lasttimeR = initialR = realtimeR = 0;
+#else 
 		lasttimeX = initialX = realtimeX;
 		lasttimeY = initialY = realtimeY;
 		lasttimeZ = initialZ = realtimeZ;
 		lasttimeR = initialR = realtimeR;
+#endif
 		QSqlQuery query(db);
 		query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
 		query.addBindValue(timeid);
@@ -301,15 +318,14 @@ public://User events: PortManagement
 		motionCtrl_event(CMD_SJ_GODIST, comboBoxScanAxis->currentIndex() == 0 ? 0x0 : 0x1, spinBoxScanDistance->value(), doubleSpinBoxScanSpeed->value());
 
 		scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);//chart->removeAllSeries();
-		timerContinousScan->start();
+		timerContinousScan->start(timeout_for_simulation);
 		scanMode = 2;
 		while (1)
 		{
 			if (scanMode == 0) 
 			{ 
-				pushButtonSample->setEnabled(true); 
+				pushButtonAutomatic->setEnabled(true);
 				timerContinousScan->stop(); 
-				scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);//chart->removeAllSeries(); 
 				motionCtrl_event(CMD_SJ_GO_STOP, comboBoxScanAxis->currentIndex() == 0 ? 0x0 : 0x1, 0xFF, 0xFF);
 				break; 
 			}
@@ -321,18 +337,18 @@ public://User events: PortManagement
 	{
 		if (index == 0)
 		{
-			scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);
-			if (timerContinousScan->isActive() == false) { timerContinousScan->start(); scanMode = 0; }
+			scatter3D->seriesList().at(0)->dataProxy()->resetArray(0); if (!m_pLLT) { this->setWindowTitle("portScan not opened"); QMessageBox::information(this, "", "portScan not opened"); return; }
+			if (timerContinousScan->isActive() == false) { timerContinousScan->start(timeout_for_simulation); scanMode = 0; }
 		}
 		else if (index == 1)
 		{
 			scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);
-			if (timerContinousScan->isActive()) timerContinousScan->stop();
+			if (timerContinousScan->isActive()) { timerContinousScan->stop(); scanMode = 0; }
 		}
 		else if (index == 2)
 		{
 			scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);
-			if (timerContinousScan->isActive()) timerContinousScan->stop();
+			if (timerContinousScan->isActive()) { timerContinousScan->stop(); scanMode = 0; }
 			if (!tableModelCatalog->select()) { QMessageBox::information(this, "", tableModelCatalog->lastError().text()); return; }
 		}
 	}
@@ -427,31 +443,8 @@ public://Interruption events
 	}
 	void timerContinousScan_timeout()
 	{
-		//cout << endl << "timer is running"; return;
-#if 0
-		//0.Define variables
-		int iRetValue = 0;
-		vector<double> vdValueX(m_uiResolution);
-		vector<double> vdValueZ(m_uiResolution);
-		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
-
-		//1.Get profiles
-		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
-		{
-			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
-		}
-		//else cout << endl << "1.Get profiles: OK";
-
-		//2.Convert profiles
-		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
-		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
-		{
-			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
-			return;
-		}
-		//else cout << endl << "2.Convert profiles: OK";
-#else
+#if USE_SIMULATION
+		realtimeX += 0.5; realtimeY += 0.5; realtimeZ += 0.5; realtimeR += 0.5;
 		vector<double> vdValueX(1024);
 		vector<double> vdValueZ(1024); int ratio = (rand() % (9 - 2 + 1) + 2); static int nn = 0; ++nn;
 		if (nn % 3 == 0)
@@ -478,6 +471,29 @@ public://Interruption events
 				vdValueZ[i] = vdValueX[i] * vdValueX[i] * vdValueX[i] / 1000 * ratio + 10;
 			}
 		}
+#else
+		//0.Define variables
+		int iRetValue = 0;
+		vector<double> vdValueX(m_uiResolution);
+		vector<double> vdValueZ(m_uiResolution);
+		vector<unsigned char> vucProfileBuffer(m_uiResolution * 4 + 16);//Resize the profile buffer to the maximal profile size
+
+		//1.Get profiles
+		if ((iRetValue = m_pLLT->GetActualProfile(&vucProfileBuffer[0], (uint)vucProfileBuffer.size(), PURE_PROFILE, NULL)) != vucProfileBuffer.size())
+		{
+			QMessageBox::warning(this, "", QString("1.Get profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "1.Get profiles: OK";
+
+		//2.Convert profiles
+		iRetValue = m_pLLT->ConvertProfile2Values(&vucProfileBuffer[0], m_uiResolution, PURE_PROFILE, m_tscanCONTROLType, 0, true, NULL, NULL, NULL, &vdValueX[0], &vdValueZ[0], NULL, NULL);
+		if (((iRetValue & CONVERT_X) == 0) || ((iRetValue & CONVERT_Z) == 0))
+		{
+			QMessageBox::warning(this, "", QString("2.Convert profiles: Err \nError code: ") + aaa::num2string(iRetValue).c_str());
+			return;
+		}
+		//else cout << endl << "2.Convert profiles: OK";
 #endif
 		//3.Scan mode: display or sample mode
 		if (scanMode == 0 || scanMode == 1)
@@ -508,7 +524,7 @@ public://Interruption events
 		//4.Scan mode: acquisition mode
 		if ((comboBoxScanAxis->currentIndex() == 0 && __abs(lasttimeX - realtimeX) > comboBoxScanStep->currentText().toInt()) || (comboBoxScanAxis->currentIndex() == 1 && __abs(lasttimeY - realtimeY) > comboBoxScanStep->currentText().toInt()))
 		{
-			static int z = -15; z += 2; if (z > 15) scanMode = 0; //less than 30 * 1024 points
+			static int z = -15; z += 1; if (z > 15) { scanMode = 0; z = 0; }//less than 30 * 1024 points
 			for (uint i = 0; i < vdValueX.size(); ++i) scatter3D->seriesList().at(0)->dataProxy()->addItem(QScatterDataItem(QVector3D(vdValueX[i], vdValueZ[i], z)));
 
 			QSqlQuery query(db);
@@ -718,7 +734,6 @@ public://Init UI and Data
 			connect(pushButtonSample, &QPushButton::clicked, this, &DemoCQScan::pushButtonSample_clicked);
 			connect(pushButtonReset, &QPushButton::clicked, [this]()->void { motionCtrl_event(CMD_DEVRST, 0xFF, 0xFF, 0xFF); });
 		}
-
 	}
 
 public://UI members
