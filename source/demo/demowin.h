@@ -260,7 +260,7 @@ public://User events: PortManagement
 				if (runState == 0xFF) { this->setWindowTitle(QString("Write ") + aaa::num2string(iwrite).c_str() + " time and receive the reply"); /*motionCtrol_unlock(true);*/ return; }
 				else if (aaa_ns - startTime < outTime) this->setWindowTitle(QString("Writing ") + aaa::num2string(iwrite).c_str() + " time");
 				else break;
-				QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+				QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 				if (portCtrlParams.hasSendSuccess == true) runState = 0xFF;
 			}
 			if (++iwrite >= 3) { this->setWindowTitle("Write 3 times and receive no reply"); /*motionCtrol_unlock(true);*/ return; }
@@ -274,9 +274,10 @@ public://User events: PortManagement
 		pushButtonSample->setEnabled(false);
 		timeid = time(0);
 		QSqlQuery query(db);
-		query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
+		query.prepare("insert into tb_scan_catalog (timeid, direction, velocity, distance, step) values (?, ?, ?, ?, ?)");
 		query.addBindValue(timeid);
 		query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? "X" : "Y");
+		query.addBindValue(doubleSpinBoxScanSpeed->value());
 		query.addBindValue(spinBoxScanDistance->value());
 		query.addBindValue(comboBoxScanStep->currentText().toInt());
 		query.exec();
@@ -286,7 +287,7 @@ public://User events: PortManagement
 		while (1)
 		{
 			if (scanMode == 0) { pushButtonSample->setEnabled(true); break; }
-			QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+			QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 		}	
 	}
 	void pushButtonAutomatic_clicked()
@@ -308,9 +309,10 @@ public://User events: PortManagement
 		lasttimeR = initialR = realtimeR;
 #endif
 		QSqlQuery query(db);
-		query.prepare("insert into tb_scan_catalog (timeid, direction, distance, step) values (?, ?, ?, ?)");
+		query.prepare("insert into tb_scan_catalog (timeid, direction, velocity, distance, step) values (?, ?, ?, ?, ?)");
 		query.addBindValue(timeid);
 		query.addBindValue(comboBoxScanAxis->currentIndex() == 0 ? "X" : "Y");
+		query.addBindValue(doubleSpinBoxScanSpeed->value());
 		query.addBindValue(spinBoxScanDistance->value());
 		query.addBindValue(comboBoxScanStep->currentText().toInt());
 		query.exec();
@@ -329,7 +331,7 @@ public://User events: PortManagement
 				motionCtrl_event(CMD_SJ_GO_STOP, comboBoxScanAxis->currentIndex() == 0 ? 0x0 : 0x1, 0xFF, 0xFF);
 				break; 
 			}
-			QApplication::processEvents(/*QEventLoop::ExcludeUserInputEvents*/);
+			QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 		}
 	}
 
@@ -368,12 +370,13 @@ public://User events: PortManagement
 	{
 		QSqlRecord record = queryModelDetails->record(modelIndex.row());
 
+		double pos = record.value(2).toDouble();
 		int sz = record.value(4).toByteArray().size() / sizeof(double);
 		const double *xdata = (double*)(record.value(4).toByteArray().constData());//toByteArray is temperary, and data() is invalid
 		const double *zdata = (double*)(record.value(5).toByteArray().constData());//but constData() is valid, don't know the reason.
 		
 		scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);
-		for(int i = 0; i < sz; ++i) scatter3D->seriesList().at(0)->dataProxy()->addItem(QScatterDataItem(QVector3D(xdata[i], zdata[i], 0)));
+		for(int i = 0; i < sz; ++i) scatter3D->seriesList().at(0)->dataProxy()->addItem(QScatterDataItem(QVector3D(xdata[i], zdata[i], pos)));
 	}
 
 public://Interruption events
@@ -588,9 +591,9 @@ public://Init UI and Data
 			widget3D = QWidget::createWindowContainer(scatter3D, parent);
 			scatter3D->addSeries(new QScatter3DSeries());
 			scatter3D->seriesList().at(0)->setItemSize(0.03);
-			scatter3D->axisX()->setTitle("Variable"); scatter3D->axisX()->setTitleVisible(true);
-			scatter3D->axisY()->setTitle("Position"); scatter3D->axisY()->setTitleVisible(true);
-			scatter3D->axisZ()->setTitle("Function"); scatter3D->axisZ()->setTitleVisible(true);
+			scatter3D->axisX()->setTitle("Abscissa"); scatter3D->axisX()->setTitleVisible(true); scatter3D->axisX()->setLabelFormat("%.2f mm");
+			scatter3D->axisY()->setTitle("Distance"); scatter3D->axisY()->setTitleVisible(true); scatter3D->axisY()->setLabelFormat("%.2f mm");
+			scatter3D->axisZ()->setTitle("Ordinate"); scatter3D->axisZ()->setTitleVisible(true); scatter3D->axisZ()->setLabelFormat("%.2f mm");
 
 			db.setDatabaseName("./../data/mysqlite.db");
 			if (!db.open()) { QMessageBox::information(this, "", "失败打开数据库, 错信息如下:\n" + db.lastError().text());  QApplication::exit(); }
@@ -661,8 +664,9 @@ public://Init UI and Data
 
 			tableModelCatalog->setHeaderData(0, Qt::Horizontal, "扫描主键");
 			tableModelCatalog->setHeaderData(1, Qt::Horizontal, "扫描方向");
-			tableModelCatalog->setHeaderData(2, Qt::Horizontal, "扫描长度");
-			tableModelCatalog->setHeaderData(3, Qt::Horizontal, "扫描步长");
+			tableModelCatalog->setHeaderData(2, Qt::Horizontal, "扫描速率");
+			tableModelCatalog->setHeaderData(3, Qt::Horizontal, "扫描长度");
+			tableModelCatalog->setHeaderData(4, Qt::Horizontal, "扫描步长");
 
 			queryModelDetails->sort(0, Qt::DescendingOrder);
 		}
