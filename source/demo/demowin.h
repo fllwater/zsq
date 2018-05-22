@@ -9,9 +9,82 @@ int timeout_for_simulation = 500;
 #ifndef __demowin_h__
 #define __demowin_h__
 
+class DemoCQMeasurement : public QDialog
+{
+public://User events
+
+public://Interruption events
+
+public://DIY code
+
+public://DIY UI
+
+public://UI members
+	QGridLayout *gridLayoutWidgetMain = new QGridLayout(this);
+	QChartView *chartView = new QChartView(this);
+	QPushButton *pushButtonSlotAnalysis = new QPushButton("激活槽宽槽深计算功能", this);
+	QLineEdit *lineEidtSlotPoint1 = new QLineEdit("", this);
+	QLineEdit *lineEidtSlotPoint2 = new QLineEdit("", this);
+	QLineEdit *lineEidtSlotWidth = new QLineEdit("", this);
+	QLineEdit *lineEidtSlotHeight = new QLineEdit("", this);
+	QPushButton *pushButtonSurfaceAnalysis = new QPushButton("激活曲面面差计算功能", this);
+	QLineEdit *lineEidtSurfacePoint1 = new QLineEdit("", this);
+	QLineEdit *lineEidtSurfacePoint2 = new QLineEdit("", this);
+	QLineEdit *lineEidtSurfacePoint3 = new QLineEdit("", this);
+	QLineEdit *lineEidtSurfacePoint4 = new QLineEdit("", this);
+	QLineEdit *lineEidtSurfaceDiff = new QLineEdit("", this);
+
+public://Data members
+	QChart *chart = new QChart();//The API tells QtChart belongs to QtChartView, but QtChartView is also deleted when QtChart is deleted.
+
+public://Init UI and Data
+	DemoCQMeasurement(QWidget *parent = 0, QScatterSeries *series = 0) : QDialog(parent)
+	{
+		//0.Basic settting
+		this->setWindowTitle("缝隙分析");
+		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
+		this->setMinimumSize(QSize(800, 400));
+		{
+			chart->addSeries(series);
+			//series->setMarkerShape(QScatterSeries::MarkerShapeCircle);
+			series->setMarkerSize(5.0);
+			//series->setPointsVisible(true);
+			//chart->legend()->setVisible(false);
+			chart->createDefaultAxes();
+			chartView->setChart(chart);	
+		}
+
+		//1.Group1 setting
+		gridLayoutWidgetMain->addWidget(chartView, 0, 0, 13, 1);
+		gridLayoutWidgetMain->addWidget(pushButtonSlotAnalysis, 0, 1, 1, 2);
+		gridLayoutWidgetMain->addWidget(new QLabel("第一点", this), 1, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSlotPoint1, 1, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第二点", this), 2, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSlotPoint2, 2, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("槽  宽", this), 3, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSlotWidth, 3, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("槽  深", this), 4, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSlotHeight, 4, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(pushButtonSurfaceAnalysis, 7, 1, 1, 2);
+		gridLayoutWidgetMain->addWidget(new QLabel("第一点", this), 8, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint1, 8, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第二点", this), 9, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint2, 9, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第三点", this), 10, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint3, 10, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第四点", this), 11, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint4, 11, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("面  差", this), 12, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfaceDiff, 12, 2, 1, 1);
+		gridLayoutWidgetMain->setColumnStretch(0, 1);
+		gridLayoutWidgetMain->setColumnStretch(1, 0);
+		gridLayoutWidgetMain->setColumnStretch(1, 0);
+	}
+};
+
 class DemoCQScan : public QWidget
 {
-public://User events: PortManagement
+public://User events
 	void pushButtonOpenDataPort_clickded()
 	{
 		if (portXYZR.isOpen()) 
@@ -378,6 +451,20 @@ public://User events: PortManagement
 		scatter3D->seriesList().at(0)->dataProxy()->resetArray(0);
 		for(int i = 0; i < sz; ++i) scatter3D->seriesList().at(0)->dataProxy()->addItem(QScatterDataItem(QVector3D(xdata[i], zdata[i], pos)));
 	}
+	void tableViewDetails_doubleClicked(QModelIndex modelIndex)
+	{
+		QSqlRecord record = queryModelDetails->record(modelIndex.row());
+
+		double pos = record.value(2).toDouble();
+		int sz = record.value(4).toByteArray().size() / sizeof(double);
+		const double *xdata = (double*)(record.value(4).toByteArray().constData());//toByteArray is temperary, and data() is invalid
+		const double *zdata = (double*)(record.value(5).toByteArray().constData());//but constData() is valid, don't know the reason.
+
+		QScatterSeries scatterSeries;
+		for (int i = 0; i < sz; ++i) scatterSeries.append(xdata[i], zdata[i]);
+		DemoCQMeasurement demoCQMeasurement(0, &scatterSeries);
+		demoCQMeasurement.exec();
+	}
 
 public://Interruption events
 	void portXYZR_readyRead()
@@ -574,6 +661,7 @@ public://DIY UI
 public://UI members
 
 public://Data members
+	QChart *chartMain = new QChart();//The API tells QtChart belongs to QtChartView, but QtChartView is also deleted when QtChart is deleted.
 
 public://Init UI and Data
 	DemoCQScan(QWidget *parent = 0) : QWidget(parent)
@@ -656,6 +744,7 @@ public://Init UI and Data
 			tableViewDetails->setModel(queryModelDetails);
 			connect(tableViewCatalog, &QTableView::clicked, this, &DemoCQScan::tableViewCatalog_clicked);
 			connect(tableViewDetails, &QTableView::clicked, this, &DemoCQScan::tableViewDetails_clicked);
+			connect(tableViewDetails, &QTableView::doubleClicked, this, &DemoCQScan::tableViewDetails_doubleClicked);
 
 			tableModelCatalog->setTable("tb_scan_catalog");
 			tableModelCatalog->sort(0, Qt::DescendingOrder);
