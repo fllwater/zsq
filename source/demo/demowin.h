@@ -35,24 +35,14 @@ public://UI members
 	QLineEdit *lineEidtSurfaceDiff = new QLineEdit("", this);
 
 public://Data members
-	QChart *chart = new QChart();//The API tells QtChart belongs to QtChartView, but QtChartView is also deleted when QtChart is deleted.
 
 public://Init UI and Data
-	DemoCQMeasurement(QWidget *parent = 0, QScatterSeries *series = 0) : QDialog(parent)
+	DemoCQMeasurement(QWidget *parent = 0, QLineSeries *series = 0) : QDialog(parent)
 	{
 		//0.Basic settting
 		this->setWindowTitle("缝隙分析");
 		this->setWindowIcon(QIcon("./../data/window/boss.ico"));
 		this->setMinimumSize(QSize(800, 400));
-		{
-			chart->addSeries(series);
-			//series->setMarkerShape(QScatterSeries::MarkerShapeCircle);
-			series->setMarkerSize(5.0);
-			//series->setPointsVisible(true);
-			//chart->legend()->setVisible(false);
-			chart->createDefaultAxes();
-			chartView->setChart(chart);	
-		}
 
 		//1.Group1 setting
 		gridLayoutWidgetMain->addWidget(chartView, 0, 0, 13, 1);
@@ -79,6 +69,14 @@ public://Init UI and Data
 		gridLayoutWidgetMain->setColumnStretch(0, 1);
 		gridLayoutWidgetMain->setColumnStretch(1, 0);
 		gridLayoutWidgetMain->setColumnStretch(1, 0);
+		{
+			chartView->setChart(new QChart());
+			chartView->setRenderHint(QPainter::Antialiasing);
+			chartView->setRubberBand(QChartView::RectangleRubberBand);
+			chartView->chart()->addSeries(series);
+			series->setPointsVisible(true);
+			chartView->chart()->createDefaultAxes();
+		}
 	}
 };
 
@@ -460,9 +458,10 @@ public://User events
 		const double *xdata = (double*)(record.value(4).toByteArray().constData());//toByteArray is temperary, and data() is invalid
 		const double *zdata = (double*)(record.value(5).toByteArray().constData());//but constData() is valid, don't know the reason.
 
-		QScatterSeries scatterSeries;
-		for (int i = 0; i < sz; ++i) scatterSeries.append(xdata[i], zdata[i]);
-		DemoCQMeasurement demoCQMeasurement(0, &scatterSeries);
+		QLineSeries series;
+		for (int i = 0; i < sz; ++i) series.append(xdata[i], zdata[i]);
+		DemoCQMeasurement demoCQMeasurement(0, &series);
+		demoCQMeasurement.setMinimumSize(QSize(this->size() * 0.8));
 		demoCQMeasurement.exec();
 	}
 
