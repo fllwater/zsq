@@ -11,6 +11,53 @@ int timeout_for_simulation = 500;
 class DemoCQMeasurement : public QDialog
 {
 public://User events
+	void lineSeries_clicked(QPointF point)
+	{
+		string str = string("(") + aaa::num2string(point.x(), 2) + ", " + aaa::num2string(point.y(), 2) + ")";
+
+		static QPointF slot1, slot2;
+		if (slotAnalysisEnabled == 1)
+		{
+			slot1 = point; slotAnalysisEnabled += 1;
+			lineEidtSlotPoint1->setText(str.c_str());
+		}
+		else if (slotAnalysisEnabled == 2)
+		{
+			slot2 = point; slotAnalysisEnabled = 0;
+			lineEidtSlotPoint2->setText(str.c_str());
+
+			QPointF slot = slot2 - slot1;
+			pushButtonSlotAnalysis->setEnabled(true);
+			lineEidtSlotWidth->setText(aaa::num2string(__abs(slot.x()), 2).c_str());
+			lineEidtSlotHeight->setText(aaa::num2string(__abs(slot.y()), 2).c_str());
+		}
+
+		static QPointF surface1, surface2, surface3, surface4;
+		if (surfaceAnalysisEnabled == 1)
+		{
+			surface1 = point; surfaceAnalysisEnabled += 1;
+			lineEidtSurfacePoint1->setText(str.c_str());
+		}
+		else if (surfaceAnalysisEnabled == 2)
+		{
+			surface2 = point; surfaceAnalysisEnabled += 1;
+			lineEidtSurfacePoint2->setText(str.c_str());
+		}
+		else if (surfaceAnalysisEnabled == 3)
+		{
+			surface3 = point; surfaceAnalysisEnabled += 1;
+			lineEidtSurfacePoint3->setText(str.c_str());
+		}
+		else if (surfaceAnalysisEnabled == 4)
+		{
+			surface4 = point; surfaceAnalysisEnabled = 0;
+			lineEidtSurfacePoint4->setText(str.c_str());
+
+			QPointF surface = (surface4 + surface3) / 2 - (surface2 + surface1) / 2; surfaceAnalysisEnabled = 0;
+			pushButtonSurfaceAnalysis->setEnabled(true);
+			lineEidtSurfaceDiff->setText(aaa::num2string(__abs(surface.y()), 2).c_str());
+		}
+	}
 
 public://Interruption events
 
@@ -20,12 +67,13 @@ public://DIY UI
 
 public://UI members
 	QGridLayout *gridLayoutWidgetMain = new QGridLayout(this);
-	QChartView *chartView = new QChartView(this);
+	DChartView *chartView = new DChartView(this);
 	QPushButton *pushButtonSlotAnalysis = new QPushButton("激活槽宽槽深计算功能", this);
 	QLineEdit *lineEidtSlotPoint1 = new QLineEdit("", this);
 	QLineEdit *lineEidtSlotPoint2 = new QLineEdit("", this);
 	QLineEdit *lineEidtSlotWidth = new QLineEdit("", this);
 	QLineEdit *lineEidtSlotHeight = new QLineEdit("", this);
+	QLineEdit *lineEidtCurPoint = new QLineEdit("", this);
 	QPushButton *pushButtonSurfaceAnalysis = new QPushButton("激活曲面面差计算功能", this);
 	QLineEdit *lineEidtSurfacePoint1 = new QLineEdit("", this);
 	QLineEdit *lineEidtSurfacePoint2 = new QLineEdit("", this);
@@ -34,6 +82,8 @@ public://UI members
 	QLineEdit *lineEidtSurfaceDiff = new QLineEdit("", this);
 
 public://Data members
+	int slotAnalysisEnabled = 0;
+	int surfaceAnalysisEnabled = 0;
 
 public://Init UI and Data
 	DemoCQMeasurement(QWidget *parent = 0, QLineSeries *series = 0) : QDialog(parent)
@@ -44,7 +94,7 @@ public://Init UI and Data
 		this->setMinimumSize(QSize(800, 400));
 
 		//1.Group1 setting
-		gridLayoutWidgetMain->addWidget(chartView, 0, 0, 13, 1);
+		gridLayoutWidgetMain->addWidget(chartView, 0, 0, 14, 1);
 		gridLayoutWidgetMain->addWidget(pushButtonSlotAnalysis, 0, 1, 1, 2);
 		gridLayoutWidgetMain->addWidget(new QLabel("第一点", this), 1, 1, 1, 1);
 		gridLayoutWidgetMain->addWidget(lineEidtSlotPoint1, 1, 2, 1, 1);
@@ -54,17 +104,19 @@ public://Init UI and Data
 		gridLayoutWidgetMain->addWidget(lineEidtSlotWidth, 3, 2, 1, 1);
 		gridLayoutWidgetMain->addWidget(new QLabel("槽  深", this), 4, 1, 1, 1);
 		gridLayoutWidgetMain->addWidget(lineEidtSlotHeight, 4, 2, 1, 1);
-		gridLayoutWidgetMain->addWidget(pushButtonSurfaceAnalysis, 7, 1, 1, 2);
-		gridLayoutWidgetMain->addWidget(new QLabel("第一点", this), 8, 1, 1, 1);
-		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint1, 8, 2, 1, 1);
-		gridLayoutWidgetMain->addWidget(new QLabel("第二点", this), 9, 1, 1, 1);
-		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint2, 9, 2, 1, 1);
-		gridLayoutWidgetMain->addWidget(new QLabel("第三点", this), 10, 1, 1, 1);
-		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint3, 10, 2, 1, 1);
-		gridLayoutWidgetMain->addWidget(new QLabel("第四点", this), 11, 1, 1, 1);
-		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint4, 11, 2, 1, 1);
-		gridLayoutWidgetMain->addWidget(new QLabel("面  差", this), 12, 1, 1, 1);
-		gridLayoutWidgetMain->addWidget(lineEidtSurfaceDiff, 12, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("当前点", this), 6, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtCurPoint, 6, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(pushButtonSurfaceAnalysis, 8, 1, 1, 2);
+		gridLayoutWidgetMain->addWidget(new QLabel("第一点", this), 9, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint1, 9, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第二点", this), 10, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint2, 10, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第三点", this), 11, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint3, 11, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("第四点", this), 12, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfacePoint4, 12, 2, 1, 1);
+		gridLayoutWidgetMain->addWidget(new QLabel("面  差", this), 13, 1, 1, 1);
+		gridLayoutWidgetMain->addWidget(lineEidtSurfaceDiff, 13, 2, 1, 1);
 		gridLayoutWidgetMain->setColumnStretch(0, 1);
 		gridLayoutWidgetMain->setColumnStretch(1, 0);
 		gridLayoutWidgetMain->setColumnStretch(1, 0);
@@ -73,8 +125,31 @@ public://Init UI and Data
 			chartView->setRenderHint(QPainter::Antialiasing);
 			chartView->setRubberBand(QChartView::RectangleRubberBand);
 			chartView->chart()->addSeries(series);
-			series->setPointsVisible(true);
+			((QLineSeries*)(chartView->chart()->series().at(0)))->setPointsVisible(true);
+			chartView->chart()->legend()->setVisible(false);
 			chartView->chart()->createDefaultAxes();
+
+			connect(pushButtonSlotAnalysis, &QPushButton::clicked, [this]()->void 
+			{ 
+				slotAnalysisEnabled = 1;  
+				pushButtonSlotAnalysis->setEnabled(false); 
+				lineEidtSlotPoint1->clear(); 
+				lineEidtSlotPoint2->clear(); 
+				lineEidtSlotWidth->clear();
+				lineEidtSlotHeight->clear();
+			});
+			connect(pushButtonSurfaceAnalysis, &QPushButton::clicked, [this]()->void 
+			{ 
+				surfaceAnalysisEnabled = 1;  
+				pushButtonSurfaceAnalysis->setEnabled(false); 
+				lineEidtSurfacePoint1->clear();
+				lineEidtSurfacePoint2->clear();
+				lineEidtSurfacePoint3->clear();
+				lineEidtSurfacePoint4->clear();
+				lineEidtSurfaceDiff->clear();
+			});
+			connect(((QLineSeries*)(chartView->chart()->series().at(0))), &QLineSeries::hovered, [this](const QPointF &point, bool state)->void { lineEidtCurPoint->setText(QString("(") + aaa::num2string(point.x(), 2).c_str() + ", " + aaa::num2string(point.y(), 2).c_str() + ")"); });
+			connect(((QLineSeries*)(chartView->chart()->series().at(0))), &QLineSeries::clicked, this, &DemoCQMeasurement::lineSeries_clicked);
 		}
 	}
 };
