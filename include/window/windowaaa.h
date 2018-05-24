@@ -4,9 +4,10 @@ using namespace QtDataVisualization;
 #ifndef __windowaaa_h__
 #define __windowaaa_h__
 
-namespace windowaaa
+class WindowTool
 {
-	void checkScreenInfo(QApplication *app)
+public:
+	static void checkScreenInfo(QApplication *app)
 	{
 		//1.
 		cout << endl << endl << "With QDesktopWidget";
@@ -54,5 +55,49 @@ namespace windowaaa
 		cout << endl << "\t" << "GetSystemMetrics(SM_CYSCREEN) = " << GetSystemMetrics(SM_CYSCREEN);
 #endif
 	}
-}
+	
+};
+
+class DChartView : public QChartView
+{
+public://Scale
+	void wheelEvent(QWheelEvent *event)
+	{
+		event->angleDelta().y() > 0 ? this->chart()->zoom(1.1) : this->chart()->zoom(0.9);//前滚正后滚负
+		this->viewport()->update();
+		QChartView::wheelEvent(event);
+	}
+
+public://Translate
+	bool translateEnabled;
+	QPoint lastMousePos;
+	void mousePressEvent(QMouseEvent *event)
+	{
+		if (event->button() == Qt::MidButton)
+		{
+			translateEnabled = true;
+			lastMousePos = event->pos();
+		}
+		QChartView::mousePressEvent(event);
+	}
+	void mouseMoveEvent(QMouseEvent *event)
+	{
+		if (translateEnabled)
+		{
+			this->chart()->scroll((lastMousePos - event->pos()).x(), (event->pos() - lastMousePos).y());
+			this->viewport()->update();
+			lastMousePos = event->pos();
+		}
+		QChartView::mouseMoveEvent(event);
+	}
+	void mouseReleaseEvent(QMouseEvent *event)
+	{
+		if (event->button() == Qt::MidButton) translateEnabled = false;
+		QChartView::mouseReleaseEvent(event);
+	}
+
+public:
+	DChartView(QWidget *parent = 0) : QChartView(parent) {}
+};
+
 #endif

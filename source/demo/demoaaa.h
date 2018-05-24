@@ -1,13 +1,12 @@
 ﻿#include "window/windowaaa.h"
-#include "InterfaceLLT_2.h"
-#include "qcustomplot.h"
-#include "CommDef.h"
+#include "./../zemo/InterfaceLLT_2.h"
+#include "./../zemo/CommDef.h"
 #pragma execution_character_set("utf-8")
 #define USE_SIMULATION 1
 int timeout_for_simulation = 500;
 
-#ifndef __demowin_h__
-#define __demowin_h__
+#ifndef __demoaaa_h__
+#define __demoaaa_h__
 
 class DemoCQMeasurement : public QDialog
 {

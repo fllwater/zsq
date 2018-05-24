@@ -33,7 +33,7 @@ include_directories(D:/app/sophus)
 
 #1.5SuiteSparse(Lapack_Blas)
 include_directories(D:/app/suitesparse/build/install/include)
-file(GLOB SuiteSparese_LIBS  LIST_DIRECTORIES false D:/app/suitesparse/build/install/lib/*.lib)
+file(GLOB SuiteSparese_LIBS LIST_DIRECTORIES false D:/app/suitesparse/build/install/lib/*.lib)
 
 #1.6Octomap(DynamicEDT3D)
 include_directories(D:/app/octomap/build/install/include)
@@ -122,6 +122,7 @@ file(GLOB incwindow LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/include/window/*)
 file(GLOB srcdir LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/*)
 file(GLOB srcdemo LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/demo/*)
 file(GLOB srceemo LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/eemo/*)
+file(GLOB srczemo LIST_DIRECTORIES false ${CMAKE_SOURCE_DIR}/source/zemo/*)
 source_group("data" FILES ${datdir})
 source_group("include" FILES ${incdir})
 source_group("include\\base" FILES ${incbase})
@@ -131,12 +132,13 @@ source_group("include\\vslam" FILES ${incvslam})
 source_group("include\\window" FILES ${incwindow})
 source_group("source" FILES ${srcdir})
 source_group("source\\demo" FILES ${srcdemo})
-source_group("source\\eaute" FILES ${srceemo})
+source_group("source\\eemo" FILES ${srceemo})
+source_group("source\\zemo" FILES ${srczemo})
 add_executable(${PROJECT_NAME} 
 ${cmkdir} 
 ${datdir} 
 ${incdir} ${incbase} ${inccalib} ${incmarker} ${incstereo} ${incvslam} ${incwindow}
-${srcdir} ${srcdemo} ${srceemo}
+${srcdir} ${srcdemo} ${srceemo} ${srczemo}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME} ${ALL_LIBS})

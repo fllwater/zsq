@@ -50,12 +50,11 @@ namespace abb
 			if (max < tmp) max = tmp;
 			sum += tmp;
 		}
-		printf("\nDifNum: %d", num);
-		printf("\nMinErr: %.2lf", min);
-		printf("\nMaxErr: %.2lf", max);
-		printf("\nSumErr: %.2lf", sum);
-		printf("\nAvgErr: %.2lf ", sum / total);
-		getchar();
+		cout << endl << "Different num: " + aaa::num2string(num);
+		cout << endl << "Minimum error: " + aaa::num2string(min, 2);
+		cout << endl << "Maximum error: " + aaa::num2string(max, 2);
+		cout << endl << "All error sum: " + aaa::num2string(sum, 2);
+		cout << endl << "All error avg: " + aaa::num2string(sum / total, 2);
 	}
 	template<typename depth> void calcErr(Mat_<depth> mat1, Mat_<depth> mat2)
 	{
@@ -76,12 +75,11 @@ namespace abb
 				sum += tmp;
 			}
 		}
-		printf("\nDifNum: %d", num);
-		printf("\nMinErr: %.2lf", min);
-		printf("\nMaxErr: %.2lf", max);
-		printf("\nSumErr: %.2lf", sum);
-		printf("\nAvgErr: %.2lf ", sum / mat1.total());
-		getchar();
+		cout << endl << "Different num: " + aaa::num2string(num);
+		cout << endl << "Minimum error: " + aaa::num2string(min, 2);
+		cout << endl << "Maximum error: " + aaa::num2string(max, 2);
+		cout << endl << "All error sum: " + aaa::num2string(sum, 2);
+		cout << endl << "All error avg: " + aaa::num2string(sum / num, 2);
 	}
 
 	vector<string> splitString(string str, string sep)
@@ -112,37 +110,37 @@ namespace abb
 
 	int getPathState(string path, int mode = 0)
 	{
-		if (mode == 0) return access(path.c_str(), 0);//是否存在
-		else if (mode == 1) return access(path.c_str(), 2);//是否只写
-		else if (mode == 2) return access(path.c_str(), 4);//是否只读
-		else if (mode == 3) return access(path.c_str(), 6);//是否读写
-		return -1;//以上状态成功都返回0否则返回-1
+		if (mode == 0) return access(path.c_str(), 0);//Existent
+		else if (mode == 1) return access(path.c_str(), 2);//Only readable
+		else if (mode == 2) return access(path.c_str(), 4);//Only writable
+		else if (mode == 3) return access(path.c_str(), 6);//Both readable and writable
+		return -1;//Return 0 for success and -1 for failure
 	}
 	string getPathInfo(string path, int mode = 0)
 	{
 		int ind1 = (int)path.find_last_of('/');
 		int ind2 = (int)path.find_last_of('.');
-		if (mode == 0) return path.substr(0, ind1);//目录
-		else if (mode == 1) return path.substr(ind1 + 1, ind2 - ind1 - 1);//文件名
-		else if (mode == 2) return path.substr(ind2 + 1);//扩展名
-		else if (mode == 3) return path.substr(0, ind2);//目录 + 文件名
-		else return path.substr(ind1 + 1);//文件名 + 扩展名
+		if (mode == 0) return path.substr(0, ind1);//directory
+		else if (mode == 1) return path.substr(ind1 + 1, ind2 - ind1 - 1);//filename
+		else if (mode == 2) return path.substr(ind2 + 1);//extension
+		else if (mode == 3) return path.substr(0, ind2);//directory and filename
+		else return path.substr(ind1 + 1);//filename and extension
 	}
 	
 	vector<string> getAllPaths(string dir, bool getdir = 0, string prefix = "")
 	{
-		//判断否存
+		//Check existence
 		namespace fs = boost::filesystem;
 		vector<string> outpath;
 		fs::path pathBoost(dir);
 		if (!fs::exists(pathBoost))
 			return outpath;
 
-		//执行遍历
+		//Do traversal
 		fs::directory_iterator end;
 		for (fs::directory_iterator it(pathBoost); it != end; ++it)
 		{
-			if (getdir)//目录
+			if (getdir)//For directory
 			{
 				if (fs::is_directory(it->status()))
 					if (it->path().filename().string().find(prefix) == 0)
@@ -154,7 +152,7 @@ namespace abb
 					}
 					
 			}
-			else//文件
+			else//For file
 			{
 				if (fs::is_regular_file(it->status()))
 					if (it->path().filename().string().find(prefix) == 0)
@@ -190,7 +188,7 @@ namespace abb
 		{
 			string newpath = getPathInfo(paths[i], 0) + "/" + prefix + aaa::num2string(i + 1) + "." + getPathInfo(paths[i], 2);
 			rename(paths[i].c_str(), newpath.c_str());
-			cout << endl << "重命名: " << paths[i] << " 为 " << newpath;
+			cout << endl << "Rename: " << paths[i] << " as " << newpath;
 		}
 	}
 	void renameWithTimeline(string dir = "./../data/abb", int mode = 0)
@@ -205,7 +203,7 @@ namespace abb
 
 			string newpath = getPathInfo(paths[i], 0) + "/" + newname + "." + getPathInfo(paths[i], 2);
 			rename(paths[i].c_str(), newpath.c_str());
-			cout << endl << "重命名: "<< paths[i] << " 为 " << newpath;
+			cout << endl << "Rename: "<< paths[i] << " as " << newpath;
 		}
 	}
 	
@@ -213,18 +211,18 @@ namespace abb
 	{
 		VideoCapture cap(path);
 		int rows, cols, fps, nframe, code, cspace, id;
-		cout << endl << "帧高: " << (rows = (int)cap.get(CAP_PROP_FRAME_HEIGHT));
-		cout << endl << "帧宽: " << (cols = (int)cap.get(CAP_PROP_FRAME_WIDTH));
-		cout << endl << "帧率: " << (fps = (int)cap.get(CAP_PROP_FPS));
-		cout << endl << "帧数: " << (nframe = (int)cap.get(CAP_PROP_FRAME_COUNT));
-		cout << endl << "编码方式: " << (code = (int)cap.get(CAP_PROP_FOURCC));
-		cout << endl << "颜色空间: " << (cspace = (int)cap.get(CAP_PROP_MODE)) << " (0→BGR, 1→RGB, 2→GRAY, 3=→YUYV)";
+		cout << endl << "Frame heiht: " << (rows = (int)cap.get(CAP_PROP_FRAME_HEIGHT));
+		cout << endl << "Frame width: " << (cols = (int)cap.get(CAP_PROP_FRAME_WIDTH));
+		cout << endl << "Frame rate: " << (fps = (int)cap.get(CAP_PROP_FPS));
+		cout << endl << "Frame count: " << (nframe = (int)cap.get(CAP_PROP_FRAME_COUNT));
+		cout << endl << "Video codec: " << (code = (int)cap.get(CAP_PROP_FOURCC));
+		cout << endl << "Color space: " << (cspace = (int)cap.get(CAP_PROP_MODE)) << " (0→BGR, 1→RGB, 2→GRAY, 3=→YUYV)";
 		if (isShow) namedWindow("extractFrame", WINDOW_NORMAL);
 
 		Mat frame;
 		while (cap.read(frame))
 		{
-			cout << endl << "当前进度: " << (id = (int)cap.get(CAP_PROP_POS_FRAMES)) << "/" << nframe;
+			cout << endl << "Current progress: " << (id = (int)cap.get(CAP_PROP_POS_FRAMES)) << "/" << nframe;
 
 			if(timelineName) imwrite(abb::getPathInfo(path) + "/" + aaa::num2string(aaa_ns) + string(".tif"), frame);
 			else imwrite(abb::getPathInfo(path, 3) + aaa::num2string(id) + string(".tif"), frame);
@@ -241,7 +239,7 @@ namespace abb
 		VideoWriter wrt(dir + "/" + vidname, VideoWriter::fourcc('D', 'I', 'V', '3'), fps, imread(paths[0], -1).size(), true);
 		for (uint i = 0; i < paths.size(); ++i)
 		{
-			cout << endl << "加入: " << paths[i];
+			cout << endl << "Merging: " << paths[i];
 			Mat frame = imread(paths[i], -1);
 			wrt.write(frame);
 
@@ -255,19 +253,19 @@ namespace abb
 	{
 		VideoCapture cap(path);
 		int rows, cols, fps, nframe, code, cspace, id;
-		cout << endl << "帧高: " << (rows = (int)cap.get(CAP_PROP_FRAME_HEIGHT));
-		cout << endl << "帧宽: " << (cols = (int)cap.get(CAP_PROP_FRAME_WIDTH));
-		cout << endl << "帧率: " << (fps = (int)cap.get(CAP_PROP_FPS));
-		cout << endl << "帧数: " << (nframe = (int)cap.get(CAP_PROP_FRAME_COUNT));
-		cout << endl << "编码方式: " << (code = (int)cap.get(CAP_PROP_FOURCC));
-		cout << endl << "颜色空间: " << (cspace = (int)cap.get(CAP_PROP_MODE)) << " (0→BGR, 1→RGB, 2→GRAY, 3=→YUYV)";
+		cout << endl << "Frame heiht: " << (rows = (int)cap.get(CAP_PROP_FRAME_HEIGHT));
+		cout << endl << "Frame width: " << (cols = (int)cap.get(CAP_PROP_FRAME_WIDTH));
+		cout << endl << "Frame rate: " << (fps = (int)cap.get(CAP_PROP_FPS));
+		cout << endl << "Frame count: " << (nframe = (int)cap.get(CAP_PROP_FRAME_COUNT));
+		cout << endl << "Video codec: " << (code = (int)cap.get(CAP_PROP_FOURCC));
+		cout << endl << "Color space: " << (cspace = (int)cap.get(CAP_PROP_MODE)) << " (0→BGR, 1→RGB, 2→GRAY, 3=→YUYV)";
 		if (isShow) namedWindow("formatVideo", WINDOW_NORMAL);
 
 		Mat frame;
 		VideoWriter wrt(getPathInfo(path, 3) + string(".") + format, code = VideoWriter::fourcc('D', 'I', 'V', '3'), fps, Size(cols, rows), true);
 		while (cap.read(frame))
 		{
-			cout << endl << "当前进度: " << (id = (int)cap.get(CAP_PROP_POS_FRAMES)) << "/" << nframe;
+			cout << endl << "Current progress: " << (id = (int)cap.get(CAP_PROP_POS_FRAMES)) << "/" << nframe;
 
 			wrt.write(frame);
 
@@ -281,7 +279,7 @@ namespace abb
 		vector<string> paths = getAllPaths(dir);
 		for (uint i = 0; i < paths.size(); ++i)
 		{
-			cout << endl << "格式化: "<< paths[i];
+			cout << endl << "Formating: "<< paths[i];
 			imwrite(abb::getPathInfo(paths[i], 3) + "." + format, imread(paths[i], -1));
 			if (replace) remove(paths[i].c_str());
 		}
@@ -289,15 +287,15 @@ namespace abb
 
 	void splitFrame(string binoDir = "./../data/bino", string leftDir = "./../data/left", string rightDir = "./../data/right")
 	{
-		//创建目录
+		//Create directory
 		createDirectory(leftDir);
 		createDirectory(rightDir);
 
-		//执行分割
+		//Split frame
 		vector<string> binoPaths = getAllPaths(binoDir);
 		for (uint i = 0; i < binoPaths.size(); ++i)
 		{
-			cout << endl << "分割: " << binoPaths[i];
+			cout << endl << "Splitting: " << binoPaths[i];
 			Mat frame = imread(binoPaths[i], -1);
 			Mat frame1 = frame.colRange(0, frame.cols >> 1);
 			Mat	frame2 = frame.colRange(frame.cols >> 1, frame.cols);
@@ -325,10 +323,10 @@ namespace abb
 
 	void takeCamera(string dir = "./../data/abb", abb_cap_params)
 	{
-		//0.创建目录
+		//0.Create directory
 		createDirectory(dir);
 
-		//1.设置抓取
+		//1.Capture setting 
 		VideoCapture cap(deviceId);
 		if (autoSize == 1)
 		{
@@ -342,22 +340,22 @@ namespace abb
 		}
 		namedWindow("takeCamera", WINDOW_NORMAL);
 
-		//2.开始抓取
-		Mat frame; int nframe = 0; cout << endl << "按S键抓取...按Q结束";
+		//2.Capture frame
+		Mat frame; int nframe = 0; cout << endl << "Press s/S to capture and q/Q to exit";
 		while (cap.read(frame))
 		{
 			imshow("takeCamera", frame);
 			char c = waitKey(3);
-			if (c == 's' || c == 'S') { imwrite(dir + string("/") + aaa::num2string(aaa_ns) + string(".tif"), frame); cout << endl << "已抓取帧数: " << ++nframe; }
+			if (c == 's' || c == 'S') { imwrite(dir + string("/") + aaa::num2string(aaa_ns) + string(".tif"), frame); cout << endl << "Caputured frame count: " << ++nframe; }
 			if (c == 'q' || c == 'Q') break;
 		}destroyWindow("takeCamera");
 	}
 	void recordCamera(string dir = "./../data/abb", abb_cap_params)
 	{
-		//0.创建目录
+		//0.Create directory
 		createDirectory(dir);
 
-		//1.设置抓取
+		//1.Record setting
 		VideoCapture cap(deviceId);
 		if (autoSize == 1)
 		{
@@ -371,8 +369,8 @@ namespace abb
 		}
 		namedWindow("recordCamera", WINDOW_NORMAL);
 
-		//2.预备抓取
-		Mat frame; int nframe = 0; cout << endl << "按S开始录制...按Q键结束录制";
+		//2.Ready for record
+		Mat frame; int nframe = 0; cout << endl << "Press s/S to record and q/Q to exit";
 		while (cap.read(frame))
 		{
 			imshow("recordCamera", frame);
@@ -380,11 +378,11 @@ namespace abb
 			if (c == 's' || c == 'S') break;
 		}
 
-		//3.开始抓取
+		//3.Record frame
 		VideoWriter wrt(dir + string("/") + aaa::num2string(aaa_ns) + string(".avi"), VideoWriter::fourcc('D', 'I', 'V', '3'), 25, Size(capCols, capRows), true);
 		while (cap.read(frame))
 		{
-			wrt.write(frame); cout << endl << "已录制帧数: " << ++nframe;
+			wrt.write(frame); cout << endl << "Recorded frame count: " << ++nframe;
 			imshow("recordCamera", frame);
 			char c = waitKey(3);	
 			if (c == 'q' || c == 'Q') break;
@@ -393,38 +391,38 @@ namespace abb
 	void recordScreen(string dir = "./../data/abb")
 	{
 #ifdef WIN32
-		//1.获取屏幕信息
+		//1.Get screen infomation
 		HDC hdcScreen = GetDC(GetDesktopWindow());
 		int elemSize = GetDeviceCaps(hdcScreen, BITSPIXEL);
 		int rows = GetDeviceCaps(hdcScreen, VERTRES);
 		int cols = GetDeviceCaps(hdcScreen, HORZRES);
 
-		//2.分配空间
+		//2.Allocate space
 		CImage cimage; int nframe = 0, nframe_ = 0;
-		cimage.Create(cols, rows, 24);//不用elemSize
+		cimage.Create(cols, rows, 24);//not use elemSize
 		HDC hdcCIM = cimage.GetDC();
 		Mat_<Vec3b> frame(rows, cols, (Vec3b*)cimage.GetPixelAddress(0, rows - 1), -cimage.GetPitch());
 
-		//3.开始录制
-		cout << endl << "按任意键并回车开始录制...按S键抓取...按Q键结束录制"; getchar();
+		//3.Start to record
+		cout << endl << "Press any key and Enter key to record; Press s/S to capture; Press q/Q to exit"; getchar();
 		VideoWriter wrt(dir + string("/") + aaa::num2string(aaa_ns) + string(".avi"), VideoWriter::fourcc('D', 'I', 'V', '3'), 25, Size(cols, rows), true);
 		while (1)
 		{
 			BitBlt(hdcCIM, 0, 0, cols, rows, hdcScreen, 0, 0, SRCCOPY);
 			flip(frame, frame, 0);
-			wrt.write(frame); cout << endl << "已录制帧数:: " << ++nframe;
+			wrt.write(frame); cout << endl << "Recorded frame count:: " << ++nframe;
 
 			imshow("recordScreen", frame);
 			char c = waitKey(3);
-			if (c == 's' || c == 'S') { imwrite(dir + string("/") + aaa::num2string(aaa_ns) + string(".tif"), frame); cout << "已抓取帧数: " << ++nframe_; }
+			if (c == 's' || c == 'S') { imwrite(dir + string("/") + aaa::num2string(aaa_ns) + string(".tif"), frame); cout << "Captured frame count: " << ++nframe_; }
 			if (c == 'q' || c == 'Q') break;
 		}
 
-		//4.释放资源
+		//4.Release source
 		cimage.ReleaseDC();
 		cimage.Destroy();
 #else
-		cout << endl << "待实现。。。" << endl;
+		cout << endl << "Waiting..." << endl;
 #endif
 	}
 
@@ -456,7 +454,7 @@ namespace abb
 		return 0;
 	}
 	int getch(void)
-	{	//此函数回车返回13, 而Windows下的getch()回车返回10
+	{	//Return 13 here, but 10 for window's getch() function
 		int c = 0;
 		struct termios org_opts, new_opts;
 		int res = 0;
