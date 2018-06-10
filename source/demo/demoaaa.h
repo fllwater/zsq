@@ -13,7 +13,7 @@ class DemoCQMeasurement : public QDialog
 public://User events
 	void lineSeries_clicked(QPointF point)
 	{
-		string str = string("(") + aaa::num2string(point.x(), 2) + ", " + aaa::num2string(point.y(), 2) + ")";
+		string str = string("(") + aaa::num2string(point.x(), 3) + ", " + aaa::num2string(point.y(), 3) + ")";
 
 		static QPointF slotW1, slotW2;
 		if (slotWAnalysisEnabled == 1)
@@ -28,7 +28,7 @@ public://User events
 
 			QPointF slot = slotW2 - slotW1;
 			pushButtonSlotWAnalysis->setEnabled(true);
-			lineEidtSlotWidth->setText(aaa::num2string(__abs(slot.x()), 2).c_str());
+			lineEidtSlotWidth->setText(aaa::num2string(__abs(slot.x()), 3).c_str());
 		}
 
 		static QPointF slotH1, slotH2;
@@ -44,7 +44,7 @@ public://User events
 
 			QPointF slot = slotH2 - slotH1;
 			pushButtonSlotHAnalysis->setEnabled(true);
-			lineEidtSlotHeight->setText(aaa::num2string(__abs(slot.y()), 2).c_str());
+			lineEidtSlotHeight->setText(aaa::num2string(__abs(slot.y()), 3).c_str());
 		}
 
 		static QPointF surface1, surface2, surface3, surface4;
@@ -70,7 +70,7 @@ public://User events
 
 			QPointF surface = (surface4 + surface3) / 2 - (surface2 + surface1) / 2; surfaceAnalysisEnabled = 0;
 			pushButtonSurfaceAnalysis->setEnabled(true);
-			lineEidtSurfaceDiff->setText(aaa::num2string(__abs(surface.y()), 2).c_str());
+			lineEidtSurfaceDiff->setText(aaa::num2string(__abs(surface.y()), 3).c_str());
 		}
 	}
 
@@ -185,7 +185,7 @@ public://Init UI and Data
 				lineEidtSurfacePoint4->clear();
 				lineEidtSurfaceDiff->clear();
 			});
-			connect(((QLineSeries*)(chartView->chart()->series().at(0))), &QLineSeries::hovered, [this](const QPointF &point, bool state)->void { lineEidtCurPoint->setText(QString("(") + aaa::num2string(point.x(), 2).c_str() + ", " + aaa::num2string(point.y(), 2).c_str() + ")"); });
+			connect(((QLineSeries*)(chartView->chart()->series().at(0))), &QLineSeries::hovered, [this](const QPointF &point, bool state)->void { lineEidtCurPoint->setText(QString("(") + aaa::num2string(point.x(), 3).c_str() + ", " + aaa::num2string(point.y(), 3).c_str() + ")"); });
 			connect(((QLineSeries*)(chartView->chart()->series().at(0))), &QLineSeries::clicked, this, &DemoCQMeasurement::lineSeries_clicked);
 			connect(pushButtonExport, &QPushButton::clicked, [this, series]()->void
 			{
@@ -836,15 +836,19 @@ public://Init UI and Data
 		//3.Group3 setting  ---  AutoScan layout
 		gridLayoutScanAutomatic->addWidget(new QLabel("扫描轴", comboBoxScanAxis), 0, 0, 1, 1);
 		gridLayoutScanAutomatic->addWidget(comboBoxScanAxis, 0, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("轴", comboBoxScanAxis), 0, 2, 1, 1);
 		gridLayoutScanAutomatic->addWidget(new QLabel("扫描速度", widgetScanAutomatic), 1, 0, 1, 1);
 		gridLayoutScanAutomatic->addWidget(doubleSpinBoxScanSpeed, 1, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("毫米/秒", widgetScanAutomatic), 1, 2, 1, 1);
 		gridLayoutScanAutomatic->addWidget(new QLabel("扫描距离", widgetScanAutomatic), 2, 0, 1, 1);
 		gridLayoutScanAutomatic->addWidget(spinBoxScanDistance, 2, 1, 1, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("毫米", widgetScanAutomatic), 2, 2, 1, 1);
 		gridLayoutScanAutomatic->addWidget(new QLabel("扫描步长", widgetScanAutomatic), 3, 0, 1, 1);
 		gridLayoutScanAutomatic->addWidget(comboBoxScanStep, 3, 1, 1, 1);
-		gridLayoutScanAutomatic->addWidget(pushButtonAutomatic, 0, 2, 4, 1);
+		gridLayoutScanAutomatic->addWidget(new QLabel("毫米", widgetScanAutomatic), 3, 2, 1, 1);
+		gridLayoutScanAutomatic->addWidget(pushButtonAutomatic, 0, 3, 4, 1);
 		{
-			comboBoxScanAxis->addItems(QStringList() << "X 轴" << "Y 轴");
+			comboBoxScanAxis->addItems(QStringList() << "X" << "Y");
 			doubleSpinBoxScanSpeed->setMinimum(1.0); 
 			doubleSpinBoxScanSpeed->setMaximum(5.0); 
 			doubleSpinBoxScanSpeed->setValue(3.0);
@@ -855,7 +859,8 @@ public://Init UI and Data
 		}
 		gridLayoutScanAutomatic->setColumnStretch(0, 0);
 		gridLayoutScanAutomatic->setColumnStretch(1, 1);
-		gridLayoutScanAutomatic->setColumnStretch(2, 1);
+		gridLayoutScanAutomatic->setColumnStretch(2, 0);
+		gridLayoutScanAutomatic->setColumnStretch(3, 1);
 
 		//4.Group4 setting  ---  HistoryScan layout 
 		gridLayoutScanHistroty->addWidget(tableViewCatalog, 0, 0, 1, 1);
@@ -905,12 +910,16 @@ public://Init UI and Data
 		//6.Group6 setting  ---  RealtimePose layout
 		gridLayoutCurrentPose->addWidget(new QLabel("X 坐标", groupBoxCurrentPose), 0, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditXAxis, 0, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 0, 2, 1, 1);
 		gridLayoutCurrentPose->addWidget(new QLabel("Y 坐标", groupBoxCurrentPose), 1, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditYAxis, 1, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 1, 2, 1, 1);
 		gridLayoutCurrentPose->addWidget(new QLabel("Z 坐标", groupBoxCurrentPose), 2, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditZAxis, 2, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("毫米", groupBoxCurrentPose), 2, 2, 1, 1);
 		gridLayoutCurrentPose->addWidget(new QLabel("旋转角", groupBoxCurrentPose), 3, 0, 1, 1);
 		gridLayoutCurrentPose->addWidget(lineEditRotate, 3, 1, 1, 1);
+		gridLayoutCurrentPose->addWidget(new QLabel("角度", groupBoxCurrentPose), 3, 2, 1, 1);
 
 		//7.Group7 setting  ---  PoseSetting layout
 		gridLayoutPoseSetting->addWidget(pushButtonMoveRight, 0, 0, 1, 1);
